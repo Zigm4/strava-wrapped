@@ -22,13 +22,16 @@ export default {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          client_id: env.STRAVA_CLIENT_ID,
+          client_id: env.STRAVA_CLIENT_ID || env.VITE_STRAVA_CLIENT_ID,
           client_secret: env.STRAVA_CLIENT_SECRET,
           code,
           grant_type: 'authorization_code',
         }),
       })
       const data = await res.json()
+      const json = { ...CORS, 'Content-Type': 'application/json' }
+      // En cas d'erreur Strava, on relaie le message brut pour faciliter le diagnostic.
+      if (!res.ok) return new Response(JSON.stringify(data), { status: res.status, headers: json })
       const payload = {
         access_token: data.access_token,
         expires_at: data.expires_at,
@@ -36,10 +39,7 @@ export default {
           ? { firstname: data.athlete.firstname, username: data.athlete.username }
           : null,
       }
-      return new Response(JSON.stringify(payload), {
-        status: res.status,
-        headers: { ...CORS, 'Content-Type': 'application/json' },
-      })
+      return new Response(JSON.stringify(payload), { status: 200, headers: json })
     } catch (err) {
       return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: CORS })
     }

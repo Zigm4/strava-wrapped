@@ -2,7 +2,8 @@
 // Le CLIENT_SECRET vit ici (variable d'env Netlify), jamais dans le front.
 //
 // Variables d'env à définir dans Netlify :
-//   STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET
+//   STRAVA_CLIENT_SECRET  (obligatoire, secret)
+//   STRAVA_CLIENT_ID      (ou, par defaut, VITE_STRAVA_CLIENT_ID deja defini pour le front)
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -22,7 +23,7 @@ exports.handler = async (event) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_id: process.env.STRAVA_CLIENT_ID,
+        client_id: process.env.STRAVA_CLIENT_ID || process.env.VITE_STRAVA_CLIENT_ID,
         client_secret: process.env.STRAVA_CLIENT_SECRET,
         code,
         grant_type: 'authorization_code',
@@ -30,7 +31,12 @@ exports.handler = async (event) => {
     })
 
     const data = await res.json()
-    // On ne renvoie que l'utile au front (token + profil minimal).
+    const json = { ...CORS, 'Content-Type': 'application/json' }
+    // En cas d'erreur Strava (ex. client_id/secret manquant, code expire), on relaie le message brut.
+    if (!res.ok) {
+      return { statusCode: res.status, headers: json, body: JSON.stringify(data) }
+    }
+    // Sinon on ne renvoie que l'utile au front (token + profil minimal).
     const payload = {
       access_token: data.access_token,
       expires_at: data.expires_at,
@@ -38,7 +44,7 @@ exports.handler = async (event) => {
         ? { firstname: data.athlete.firstname, username: data.athlete.username }
         : null,
     }
-    return { statusCode: res.status, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
+    return { statusCode: 200, headers: json, body: JSON.stringify(payload) }
   } catch (err) {
     return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: String(err) }) }
   }
