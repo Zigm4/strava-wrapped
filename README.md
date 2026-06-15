@@ -53,13 +53,34 @@ You only need to do this once, as the owner of the app. Your users never create 
 
 For production, deploy the provided token-exchange function (see `netlify/functions/strava-token.js` or `cloudflare-worker/`) and set `VITE_STRAVA_CLIENT_ID` and `VITE_TOKEN_EXCHANGE_URL` at build time. The Client Secret stays on the function side, never in the front end.
 
-## Deploy to GitHub Pages
+## Deploy, and how login works once published
 
-1. Push this repository to GitHub.
-2. In the repository, go to Settings, then Pages, and set the source to GitHub Actions.
-3. (Optional, for real Strava) In Settings, Secrets and variables, Actions, Variables, add `VITE_STRAVA_CLIENT_ID` and `VITE_TOKEN_EXCHANGE_URL`.
+A static page cannot safely hold the Strava client secret, and Strava does not support PKCE. So the secret never lives in the front end: a tiny serverless function holds it and performs only the token exchange. As a result:
 
-The workflow in `.github/workflows/deploy.yml` builds and publishes on every push to `main`. The Vite `base` is set to `./`, so it works under any repository name. Without the Strava variables, the published site runs in demo mode only.
+- The published static site works on its own in **demo mode**, with no secret.
+- The real "Connect with Strava" button needs that function deployed, and the front end needs its URL (`VITE_TOKEN_EXCHANGE_URL`).
+
+### Option A, recommended: all-in-one on Netlify
+
+Netlify hosts the static site and the function together, so there is no CORS and a single place to deploy. The settings come from `netlify.toml`.
+
+1. On Netlify, "Add new site", import this GitHub repository.
+2. In Site settings, Environment variables, add:
+   - `VITE_STRAVA_CLIENT_ID` set to your Strava Client ID
+   - `STRAVA_CLIENT_SECRET` set to your Strava Client Secret
+   (`VITE_TOKEN_EXCHANGE_URL` is already wired to the function path in `netlify.toml`.)
+3. Deploy, then set the Strava app Authorization Callback Domain to your Netlify domain.
+
+The secret stays on Netlify, never in the repository or the front end.
+
+### Option B: GitHub Pages for the front, function hosted separately
+
+1. Settings, Pages, source: GitHub Actions. The workflow in `.github/workflows/deploy.yml` builds and publishes on every push to `main`.
+2. Deploy the function on its own (Netlify, or the Cloudflare Worker in `cloudflare-worker/`), with the secret as a platform env var.
+3. In Settings, Secrets and variables, Actions, Variables, add `VITE_STRAVA_CLIENT_ID` and `VITE_TOKEN_EXCHANGE_URL` (the deployed function URL), then re-run the deploy.
+4. Set the Strava Callback Domain to your Pages domain.
+
+The Vite `base` is `./`, so it works under any repository name. Without the variables, the published site runs in demo mode only.
 
 ## Tech stack
 

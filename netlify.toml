@@ -1,9 +1,18 @@
-# Déploiement optionnel de la SEULE fonction d'échange de token sur Netlify.
-# (Le site lui-même peut rester sur GitHub Pages.)
+# All-in-one Netlify deploy: the static site AND the token-exchange function,
+# so there is no CORS and the Strava client secret lives only in Netlify.
+#
+# Set these in Netlify (Site settings > Environment variables):
+#   VITE_STRAVA_CLIENT_ID   your Strava Client ID (public)
+#   STRAVA_CLIENT_SECRET    your Strava Client Secret (keep secret)
+
 [build]
+  command = "npm run build"
+  publish = "dist"
   functions = "netlify/functions"
-  # Pas de site à build ici si tu héberges le front sur GitHub Pages :
-  publish = "."
+
+[build.environment]
+  # the front end calls the function on the same origin, so no CORS is needed
+  VITE_TOKEN_EXCHANGE_URL = "/.netlify/functions/strava-token"
 
 [functions]
   node_bundler = "esbuild"
