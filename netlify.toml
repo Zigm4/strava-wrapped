@@ -1,0 +1,9 @@
+# Déploiement optionnel de la SEULE fonction d'échange de token sur Netlify.
+# (Le site lui-même peut rester sur GitHub Pages.)
+[build]
+  functions = "netlify/functions"
+  # Pas de site à build ici si tu héberges le front sur GitHub Pages :
+  publish = "."
+
+[functions]
+  node_bundler = "esbuild"
