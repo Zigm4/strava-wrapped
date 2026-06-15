@@ -60,9 +60,9 @@ A static page cannot safely hold the Strava client secret, and Strava does not s
 - The published static site works on its own in **demo mode**, with no secret.
 - The real "Connect with Strava" button needs that function deployed, and the front end needs its URL (`VITE_TOKEN_EXCHANGE_URL`).
 
-### Option A, recommended: all-in-one on Netlify
+### Deploy on Netlify (front end and function together)
 
-Netlify hosts the static site and the function together, so there is no CORS and a single place to deploy. The settings come from `netlify.toml`.
+Netlify hosts the static site and the token-exchange function in one place, so there is no CORS and a single deploy. The settings come from `netlify.toml`.
 
 1. On Netlify, "Add new site", import this GitHub repository.
 2. In Site settings, Environment variables, add:
@@ -71,16 +71,9 @@ Netlify hosts the static site and the function together, so there is no CORS and
    (`VITE_TOKEN_EXCHANGE_URL` is already wired to the function path in `netlify.toml`.)
 3. Deploy, then set the Strava app Authorization Callback Domain to your Netlify domain.
 
-The secret stays on Netlify, never in the repository or the front end.
+The secret stays on Netlify, never in the repository or the front end. After changing environment variables, trigger a new deploy so the values are baked into the build.
 
-### Option B: GitHub Pages for the front, function hosted separately
-
-1. Settings, Pages, source: GitHub Actions. The workflow in `.github/workflows/deploy.yml` builds and publishes on every push to `main`.
-2. Deploy the function on its own (Netlify, or the Cloudflare Worker in `cloudflare-worker/`), with the secret as a platform env var.
-3. In Settings, Secrets and variables, Actions, Variables, add `VITE_STRAVA_CLIENT_ID` and `VITE_TOKEN_EXCHANGE_URL` (the deployed function URL), then re-run the deploy.
-4. Set the Strava Callback Domain to your Pages domain.
-
-The Vite `base` is `./`, so it works under any repository name. Without the variables, the published site runs in demo mode only.
+The app is just a static site plus one stateless function, so it also runs on Vercel, Cloudflare Pages, or any static host paired with the provided function (a Cloudflare Worker is included in `cloudflare-worker/`). The Vite `base` is `./`, so it works under any path.
 
 ## Tech stack
 
