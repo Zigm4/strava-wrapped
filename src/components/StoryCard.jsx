@@ -56,8 +56,14 @@ function buildRecords(summary, max) {
   return out.slice(0, max)
 }
 
+// texte d'écart de distance (metres) : "▲ +12,3 km" / "▼ -5,0 km" / "≈ stable"
+function deltaText(d) {
+  if (Math.abs(d) < 100) return '≈ stable'
+  return `${d > 0 ? '▲ +' : '▼ -'}${fmtKm(Math.abs(d))} km`
+}
+
 const StoryCard = forwardRef(function StoryCard(
-  { summary, formatId = 'story', background, photo, periodLabel, scrim, accent, theme = 'dark', title, handle, spot, privacy = true, comparison },
+  { summary, formatId = 'story', background, photo, periodLabel, scrim, accent, theme = 'dark', title, handle, spot, privacy = true, comparison, showDeltas, typeCompare },
   ref,
 ) {
   const fmt = FORMATS[formatId] || FORMATS.story
@@ -94,6 +100,11 @@ const StoryCard = forwardRef(function StoryCard(
   const distTypes = summary.byType.filter((t) => t.distance > 0)
   const maxTypeDist = Math.max(...distTypes.map((t) => t.distance), 1)
   const types = distTypes.slice(0, d.types)
+  const deltaMode = showDeltas && typeCompare?.rows?.length > 0
+  const typeRows = deltaMode
+    ? typeCompare.rows.filter((t) => t.current > 0 || t.previous > 0).slice(0, d.types)
+    : types
+  const maxRow = deltaMode ? Math.max(...typeRows.map((t) => t.current), 1) : maxTypeDist
   const records = d.showRecords ? buildRecords(summary, d.records) : []
   const races = (summary.races || []).slice(0, d.races || 0)
   const showRaces = races.length > 0
@@ -161,21 +172,26 @@ const StoryCard = forwardRef(function StoryCard(
           </div>
         </motion.div>
 
-        {/* répartition par type */}
-        {d.showTypes && types.length > 0 && (
+        {/* répartition par type (ou écart vs période précédente) */}
+        {d.showTypes && typeRows.length > 0 && (
           <motion.div className="types" variants={item}>
-            {types.map((t) => (
-              <div className="trow" key={t.key}>
-                <div className="ticon" style={{ background: `${t.color}33` }}>
-                  <FamilyIcon k={t.key} size={32} style={{ color: t.color }} />
+            {typeRows.map((t) => {
+              const dist = deltaMode ? t.current : t.distance
+              return (
+                <div className="trow" key={t.key}>
+                  <div className="ticon" style={{ background: `${t.color}33` }}>
+                    <FamilyIcon k={t.key} size={32} style={{ color: t.color }} />
+                  </div>
+                  <div className="tmeta">
+                    <div className="tname"><span>{t.label}</span><span className="tdist">{fmtKm(dist)} km</span></div>
+                    <div className="tbar"><div className="tfill" style={{ width: `${dist > 0 ? Math.max(6, (dist / maxRow) * 100) : 0}%`, background: `linear-gradient(90deg, ${t.color}, ${t.color}aa)` }} /></div>
+                    {deltaMode
+                      ? <div className={`tsub tdelta ${t.delta > 100 ? 'up' : t.delta < -100 ? 'down' : ''}`}>{deltaText(t.delta)} vs {typeCompare.label}</div>
+                      : <div className="tsub">{t.count} sorties · {fmtElev(t.elevation)} m D+</div>}
+                  </div>
                 </div>
-                <div className="tmeta">
-                  <div className="tname"><span>{t.label}</span><span className="tdist">{fmtKm(t.distance)} km</span></div>
-                  <div className="tbar"><div className="tfill" style={{ width: `${Math.max(6, (t.distance / maxTypeDist) * 100)}%`, background: `linear-gradient(90deg, ${t.color}, ${t.color}aa)` }} /></div>
-                  <div className="tsub">{t.count} sorties · {fmtElev(t.elevation)} m D+</div>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </motion.div>
         )}
 

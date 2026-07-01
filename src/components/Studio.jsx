@@ -3,7 +3,7 @@ import { toPng } from 'html-to-image'
 import Controls from './Controls.jsx'
 import StoryCard from './StoryCard.jsx'
 import { aggregate, availableFamilies, personalBestIds } from '../lib/aggregate.js'
-import { familyKey } from '../lib/activityTypes.js'
+import { familyKey, FAMILIES } from '../lib/activityTypes.js'
 import { reverseGeocode } from '../lib/geocode.js'
 import { monthShort, monthLabel } from '../lib/format.js'
 import { FORMATS } from '../data/formats.js'
@@ -70,6 +70,7 @@ export default function Studio({ activities, athleteName, isDemo }) {
   const [title, setTitle] = useState('')
   const [handle, setHandle] = useState('')
   const [privacy, setPrivacy] = useState(true) // masquer le départ/arrivée du tracé
+  const [showDeltas, setShowDeltas] = useState(false) // écart par type vs période précédente
   const [exporting, setExporting] = useState(false)
   const [toast, setToast] = useState(null)
 
@@ -142,6 +143,39 @@ export default function Studio({ activities, athleteName, isDemo }) {
     const cur = sum(periodActivities), prev = sum(prevActs)
     if (prev <= 0 || cur <= 0) return null
     return { pct: Math.round(((cur - prev) / prev) * 100), label }
+  }, [activities, period, year, month, periodActivities, allActive, selected])
+
+  // écart de distance par type de sport vs la période précédente (union des sports, filtre respecté)
+  const typeCompare = useMemo(() => {
+    const group = (acts) => {
+      const m = {}
+      for (const a of acts) {
+        const k = familyKey(a.type)
+        if (!allActive && !selected.has(k)) continue
+        m[k] = (m[k] || 0) + (a.distance || 0)
+      }
+      return m
+    }
+    let prevActs, label
+    if (period === 'year') {
+      prevActs = activities.filter((a) => new Date(a.start_date_local).getFullYear() === year - 1)
+      label = String(year - 1)
+    } else {
+      const pm = new Date(month.year, month.month - 1, 1)
+      prevActs = activities.filter((a) => {
+        const d = new Date(a.start_date_local)
+        return d.getFullYear() === pm.getFullYear() && d.getMonth() === pm.getMonth()
+      })
+      label = monthShort(pm.getMonth())
+    }
+    const cur = group(periodActivities), prev = group(prevActs)
+    const rows = [...new Set([...Object.keys(cur), ...Object.keys(prev)])]
+      .map((k) => ({
+        key: k, label: FAMILIES[k].label, color: FAMILIES[k].color,
+        current: cur[k] || 0, previous: prev[k] || 0, delta: (cur[k] || 0) - (prev[k] || 0),
+      }))
+      .sort((a, b) => Math.max(b.current, b.previous) - Math.max(a.current, a.previous))
+    return { rows, label }
   }, [activities, period, year, month, periodActivities, allActive, selected])
 
   function resetFilters() { setAllActive(true); setSelected(new Set()) }
@@ -255,6 +289,7 @@ export default function Studio({ activities, athleteName, isDemo }) {
         years={years} selectedYear={year} onSelectYear={selectYear}
         availFamilies={availFamilies} selectedFamilies={selected} onToggleFamily={toggleFamily}
         onAllFamilies={resetFilters} allActive={allActive}
+        showDeltas={showDeltas} onDeltas={setShowDeltas} deltaLabel={typeCompare.label}
         formatId={formatId} onFormat={setFormatId}
         title={title} onTitle={setTitle} handle={handle} onHandle={setHandle}
         backgrounds={BACKGROUNDS} bgId={bgId} onBg={chooseBg}
@@ -283,6 +318,8 @@ export default function Studio({ activities, athleteName, isDemo }) {
             spot={spot}
             privacy={privacy}
             comparison={comparison}
+            showDeltas={showDeltas}
+            typeCompare={typeCompare}
           />
         </div>
       </div>

@@ -10,6 +10,7 @@ export default function Controls({
   monthViewYear, onPrevYear, onNextYear, canPrevYear, canNextYear,
   years, selectedYear, onSelectYear,
   availFamilies, selectedFamilies, onToggleFamily, onAllFamilies, allActive,
+  showDeltas, onDeltas, deltaLabel,
   formatId, onFormat,
   title, onTitle, handle, onHandle,
   backgrounds, bgId, onBg,
@@ -84,6 +85,13 @@ export default function Controls({
           })}
         </div>
         {availFamilies.length === 0 && <div className="helper">Aucune activité sur cette période.</div>}
+
+        <div className="divider" />
+        <div className="field-label">Comparaison</div>
+        <div className="segment">
+          <button className={!showDeltas ? 'active' : ''} onClick={() => onDeltas(false)}>Simple</button>
+          <button className={showDeltas ? 'active' : ''} onClick={() => onDeltas(true)}>Écart vs {deltaLabel}</button>
+        </div>
       </div>
 
       {/* Format */}
