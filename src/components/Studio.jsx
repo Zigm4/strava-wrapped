@@ -152,7 +152,9 @@ export default function Studio({ activities, athleteName, isDemo }) {
       for (const a of acts) {
         const k = familyKey(a.type)
         if (!allActive && !selected.has(k)) continue
-        m[k] = (m[k] || 0) + (a.distance || 0)
+        if (!m[k]) m[k] = { dist: 0, elev: 0 }
+        m[k].dist += a.distance || 0
+        m[k].elev += a.total_elevation_gain || 0
       }
       return m
     }
@@ -170,10 +172,15 @@ export default function Studio({ activities, athleteName, isDemo }) {
     }
     const cur = group(periodActivities), prev = group(prevActs)
     const rows = [...new Set([...Object.keys(cur), ...Object.keys(prev)])]
-      .map((k) => ({
-        key: k, label: FAMILIES[k].label, color: FAMILIES[k].color,
-        current: cur[k] || 0, previous: prev[k] || 0, delta: (cur[k] || 0) - (prev[k] || 0),
-      }))
+      .map((k) => {
+        const c = cur[k] || { dist: 0, elev: 0 }
+        const p = prev[k] || { dist: 0, elev: 0 }
+        return {
+          key: k, label: FAMILIES[k].label, color: FAMILIES[k].color,
+          current: c.dist, previous: p.dist, delta: c.dist - p.dist,
+          deltaElev: c.elev - p.elev,
+        }
+      })
       .sort((a, b) => Math.max(b.current, b.previous) - Math.max(a.current, a.previous))
     return { rows, label }
   }, [activities, period, year, month, periodActivities, allActive, selected])

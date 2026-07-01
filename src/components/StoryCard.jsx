@@ -56,10 +56,16 @@ function buildRecords(summary, max) {
   return out.slice(0, max)
 }
 
-// texte d'écart de distance (metres) : "▲ +12,3 km" / "▼ -5,0 km" / "≈ stable"
+// écart de distance (metres) : "▲ +12,3 km" / "▼ -5,0 km" / "≈ 0 km"
 function deltaText(d) {
-  if (Math.abs(d) < 100) return '≈ stable'
+  if (Math.abs(d) < 100) return '≈ 0 km'
   return `${d > 0 ? '▲ +' : '▼ -'}${fmtKm(Math.abs(d))} km`
+}
+
+// écart de dénivelé positif : "▲ +340 m D+" / "▼ -120 m D+" / "≈ 0 m D+"
+function deltaElevText(d) {
+  if (Math.abs(d) < 10) return '≈ 0 m D+'
+  return `${d > 0 ? '▲ +' : '▼ -'}${fmtElev(Math.abs(d))} m D+`
 }
 
 const StoryCard = forwardRef(function StoryCard(
@@ -175,6 +181,7 @@ const StoryCard = forwardRef(function StoryCard(
         {/* répartition par type (ou écart vs période précédente) */}
         {d.showTypes && typeRows.length > 0 && (
           <motion.div className="types" variants={item}>
+            {deltaMode && <div className="sec-label">Écart vs {typeCompare.label}</div>}
             {typeRows.map((t) => {
               const dist = deltaMode ? t.current : t.distance
               return (
@@ -185,9 +192,15 @@ const StoryCard = forwardRef(function StoryCard(
                   <div className="tmeta">
                     <div className="tname"><span>{t.label}</span><span className="tdist">{fmtKm(dist)} km</span></div>
                     <div className="tbar"><div className="tfill" style={{ width: `${dist > 0 ? Math.max(6, (dist / maxRow) * 100) : 0}%`, background: `linear-gradient(90deg, ${t.color}, ${t.color}aa)` }} /></div>
-                    {deltaMode
-                      ? <div className={`tsub tdelta ${t.delta > 100 ? 'up' : t.delta < -100 ? 'down' : ''}`}>{deltaText(t.delta)} vs {typeCompare.label}</div>
-                      : <div className="tsub">{t.count} sorties · {fmtElev(t.elevation)} m D+</div>}
+                    {deltaMode ? (
+                      <div className="tsub tdelta-line">
+                        <span className={`d ${t.delta > 100 ? 'up' : t.delta < -100 ? 'down' : ''}`}>{deltaText(t.delta)}</span>
+                        <span className="dsep"> · </span>
+                        <span className={`d ${t.deltaElev > 10 ? 'up' : t.deltaElev < -10 ? 'down' : ''}`}>{deltaElevText(t.deltaElev)}</span>
+                      </div>
+                    ) : (
+                      <div className="tsub">{t.count} sorties · {fmtElev(t.elevation)} m D+</div>
+                    )}
                   </div>
                 </div>
               )
