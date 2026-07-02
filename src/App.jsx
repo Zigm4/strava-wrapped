@@ -5,6 +5,7 @@ import Landing from './components/Landing.jsx'
 import Studio from './components/Studio.jsx'
 import StravaSetup from './components/StravaSetup.jsx'
 import SharedView from './components/SharedView.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { readShareHash } from './lib/share.js'
 import { generateDemoActivities } from './lib/demoData.js'
 import { authorizeUrl, readCallback, exchangeToken, refreshAccessToken, fetchRange, stravaConfigured } from './lib/strava.js'
@@ -192,7 +193,7 @@ export default function App() {
             </div>
             <span className="pill"><Lock size={13} /> Lien 100% local</span>
           </header>
-          <SharedView snapshot={shared} onCreate={exitShared} />
+          <ErrorBoundary><SharedView snapshot={shared} onCreate={exitShared} /></ErrorBoundary>
         </div>
       </>
     )
@@ -238,7 +239,9 @@ export default function App() {
         )}
 
         {view === 'studio' && data && (
-          <Studio activities={data.activities} athleteName={data.athleteName} isDemo={data.isDemo} coverageStart={coverageStart} />
+          <ErrorBoundary>
+            <Studio activities={data.activities} athleteName={data.athleteName} isDemo={data.isDemo} coverageStart={coverageStart} />
+          </ErrorBoundary>
         )}
       </div>
 
