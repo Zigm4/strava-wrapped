@@ -7,6 +7,7 @@ import { familyKey, FAMILIES } from '../lib/activityTypes.js'
 import { reverseGeocode } from '../lib/geocode.js'
 import { monthShort, monthLabel } from '../lib/format.js'
 import { localYear, localMonth, localParts, localTime } from '../lib/date.js'
+import { monthHeatmap, yearHeatmap } from '../lib/heatmap.js'
 import { FORMATS } from '../data/formats.js'
 import { BACKGROUNDS, DEFAULT_BG, ACCENTS, DEFAULT_ACCENT } from '../data/backgrounds.js'
 
@@ -55,6 +56,7 @@ function buildYears(activities) {
 }
 
 const canShare = typeof navigator !== 'undefined' && !!navigator.share && !!navigator.canShare
+const canCopy = typeof navigator !== 'undefined' && !!navigator.clipboard && typeof window !== 'undefined' && typeof window.ClipboardItem !== 'undefined'
 
 export default function Studio({ activities, athleteName, isDemo, coverageStart }) {
   const dataFloor = coverageStart || null // { year, month } : début de l'historique téléchargé
@@ -82,6 +84,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
   const [title, setTitle] = useState('')
   const [handle, setHandle] = useState('')
   const [privacy, setPrivacy] = useState(true) // masquer le départ/arrivée du tracé
+  const [showHeatmap, setShowHeatmap] = useState(false) // calendrier jour-par-jour (à la place de la carte)
   const [compareMode, setCompareMode] = useState('off') // 'off' | 'prev' | 'yoy'
   const [exporting, setExporting] = useState(false)
   const [capturing, setCapturing] = useState(false) // fige les animations le temps du rendu PNG
@@ -211,6 +214,12 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
   // deltas réellement affichables ? (mode actif ET référence fiable)
   const deltaActive = compareMode !== 'off' && !typeCompare.partial && typeCompare.rows.length > 0
 
+  // heatmap calendrier de la période (jour par jour)
+  const heatmap = useMemo(() => {
+    const daily = summary.dailyDistance || {}
+    return period === 'year' ? yearHeatmap(year, daily) : monthHeatmap(month.year, month.month, daily)
+  }, [period, year, month, summary])
+
   function resetFilters() { setAllActive(true); setSelected(new Set()) }
   function selectMonth(m) { setMonth(m); resetFilters() }
   function selectYear(y) { setYear(y); resetFilters() }
@@ -313,6 +322,22 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
     }
   }
 
+  async function handleCopy() {
+    if (!cardRef.current) return
+    setExporting(true)
+    try {
+      const dataUrl = await renderPng(2)
+      const blob = await (await fetch(dataUrl)).blob()
+      await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })])
+      setToast({ type: 'ok', msg: 'Image copiée 📋' })
+    } catch (err) {
+      console.error(err)
+      setToast({ type: 'err', msg: 'Copie impossible ici — télécharge plutôt.' })
+    } finally {
+      setExporting(false)
+    }
+  }
+
   useEffect(() => {
     if (!toast) return
     const t = setTimeout(() => setToast(null), 2800)
@@ -337,9 +362,11 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
         accents={ACCENTS} accentId={accentId} onAccent={setAccentId}
         theme={theme} onTheme={setTheme}
         privacy={privacy} onPrivacy={setPrivacy}
+        showHeatmap={showHeatmap} onHeatmap={setShowHeatmap}
         photo={photo} onPhoto={choosePhoto} onClearPhoto={clearPhoto}
         scrim={scrim} onScrim={setScrim}
         onExport={handleExport} exporting={exporting} onShare={handleShare} canShare={canShare}
+        onCopy={handleCopy} canCopy={canCopy}
       />
 
       <div className="stage-wrap" ref={wrapRef}>
@@ -361,6 +388,8 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
             comparison={comparison}
             showDeltas={deltaActive}
             typeCompare={typeCompare}
+            showHeatmap={showHeatmap}
+            heatmap={heatmap}
             still={capturing}
           />
         </div>

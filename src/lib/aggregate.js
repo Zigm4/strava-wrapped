@@ -120,6 +120,7 @@ export function aggregate(activities, selected, recordIds) {
   // active days + plus longue série
   summary.activeDays = daySet.size
   summary.streak = longestStreak([...daySet])
+  summary.dailyDistance = dayDist // { 'YYYY-MM-DD': mètres } pour la heatmap calendrier
 
   // jour le plus actif (en distance)
   const topDay = Object.entries(dayDist).sort((a, b) => b[1] - a[1])[0]

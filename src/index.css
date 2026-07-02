@@ -249,6 +249,9 @@ a { color: inherit; text-decoration: none; }
 .topbar-actions { display: flex; align-items: center; gap: 10px; }
 .sync-status { font-size: 12.5px; color: var(--text-faint); white-space: nowrap; }
 .spin { animation: spin 0.9s linear infinite; }
+.export-row { display: flex; gap: 10px; margin-top: 10px; }
+.export-row .btn { flex: 1; }
+.export-row:empty { display: none; }
 
 /* ---------- Buttons ---------- */
 .btn {
@@ -572,6 +575,14 @@ a { color: inherit; text-decoration: none; }
 .card .map-info .map-type { align-self: flex-start; display: inline-flex; align-items: center; gap: 9px; margin-top: 14px; padding: 7px 15px; border-radius: 999px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.16); font-size: 21px; font-weight: 600; }
 .card .map-info .map-sub { font-size: 22px; color: var(--ink-dim); margin-top: 14px; }
 .card .map-info .map-powered { text-align: left; margin-top: auto; padding-top: 18px; }
+
+/* calendrier (heatmap) — remplace la mini-carte */
+.card .c-cal { margin-top: 30px; display: flex; flex-direction: column; gap: 18px; }
+.card .c-cal .sec-label { display: flex; align-items: center; gap: 8px; }
+.card .cal-legend { display: flex; align-items: center; gap: 12px; font-size: 20px; color: var(--ink-dim); }
+.card .cal-swatches { display: inline-flex; gap: 5px; }
+.card .cal-swatches i { width: 20px; height: 20px; border-radius: 5px; display: inline-block; }
+.card .cal-powered { margin-left: auto; font-size: 20px; color: var(--ink-dim); }
 .card .c-head .handle { font-size: 22px; color: var(--ink-dim); margin-top: 10px; padding-left: 4px; }
 
 /* empty state */

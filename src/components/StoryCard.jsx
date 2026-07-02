@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { MapPin, Mountain, Timer, Gauge, CalendarDays, Route, Award, TrendingUp, TrendingDown, Sunrise, Sun, Sunset, Moon, Flame } from 'lucide-react'
 import AnimatedNumber from './AnimatedNumber.jsx'
 import RouteMap from './RouteMap.jsx'
+import Heatmap from './Heatmap.jsx'
 import { FamilyIcon } from './icons.jsx'
 import { FAMILIES } from '../lib/activityTypes.js'
 import { trimRoute } from '../lib/polyline.js'
@@ -69,7 +70,7 @@ function deltaElevText(d) {
 }
 
 const StoryCard = forwardRef(function StoryCard(
-  { summary, formatId = 'story', background, photo, periodLabel, scrim, accent, theme = 'dark', title, handle, spot, privacy = true, comparison, showDeltas, typeCompare, still = false },
+  { summary, formatId = 'story', background, photo, periodLabel, scrim, accent, theme = 'dark', title, handle, spot, privacy = true, comparison, showDeltas, typeCompare, showHeatmap, heatmap, still = false },
   ref,
 ) {
   const fmt = FORMATS[formatId] || FORMATS.story
@@ -117,6 +118,8 @@ const StoryCard = forwardRef(function StoryCard(
   const showRecordsGrid = d.showRecords && records.length > 0 && !showRaces
   const route = privacy ? trimRoute(summary.heroRoute, 300) : summary.heroRoute
   const hasMap = d.showMap && route && route.length > 1
+  // Le calendrier prend la place de la mini-carte (formats qui ont de la place : story/post)
+  const showCal = showHeatmap && d.showMap && heatmap
   const highlights = buildHighlights(summary, comparison, d.highlights || 0)
 
   return (
@@ -249,8 +252,25 @@ const StoryCard = forwardRef(function StoryCard(
           </motion.div>
         )}
 
-        {/* mini-carte du spot préféré */}
-        {hasMap ? (
+        {/* calendrier jour-par-jour (remplace la mini-carte quand activé) */}
+        {showCal ? (
+          <motion.div className="c-cal" variants={item}>
+            <div className="sec-label">
+              <CalendarDays size={20} style={{ verticalAlign: '-3px' }} /> {heatmap.type === 'year' ? 'Ton année, jour par jour' : 'Ton mois, jour par jour'}
+            </div>
+            <Heatmap data={heatmap} accent={acc.from} />
+            <div className="cal-legend">
+              <span>moins</span>
+              <span className="cal-swatches">
+                {[0.1, 0.32, 0.5, 0.72, 1].map((o, i) => (
+                  <i key={i} style={{ background: i === 0 ? 'rgba(255,255,255,0.12)' : acc.from, opacity: i === 0 ? 1 : o }} />
+                ))}
+              </span>
+              <span>plus</span>
+              <span className="cal-powered">Propulsé par <b>Strava</b>{handle ? ` · ${handle}` : ''}</span>
+            </div>
+          </motion.div>
+        ) : hasMap ? (
           <motion.div className="c-map" variants={item}>
             <div className="map-tile" style={{ width: d.mapH, minHeight: d.mapH }}>
               <RouteMap route={route} size={d.mapH} accentFrom={acc.from} accentTo={acc.to} />

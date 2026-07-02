@@ -5,7 +5,7 @@ import Landing from './components/Landing.jsx'
 import Studio from './components/Studio.jsx'
 import StravaSetup from './components/StravaSetup.jsx'
 import { generateDemoActivities } from './lib/demoData.js'
-import { authorizeUrl, readCallback, exchangeToken, fetchRange, stravaConfigured } from './lib/strava.js'
+import { authorizeUrl, readCallback, exchangeToken, refreshAccessToken, fetchRange, stravaConfigured } from './lib/strava.js'
 import { loadCache, saveCache, clearCache } from './lib/cache.js'
 import { timeAgo } from './lib/format.js'
 
@@ -35,22 +35,26 @@ export default function App() {
   const [loadingMsg, setLoadingMsg] = useState('')
   const [showSetup, setShowSetup] = useState(false)
   const [syncedAt, setSyncedAt] = useState(null)
+  const [syncing, setSyncing] = useState(false) // resync en place (sans quitter le studio)
   const [coverageStart, setCoverageStart] = useState(null) // { year, month } : début de l'historique couvert
   const tokenRef = useRef(null) // { accessToken, refreshToken, expiresAt } - en mémoire, jamais stocké
 
   // Démarrage : retour OAuth, sinon cache local
   useEffect(() => {
-    const { code, error: oauthErr } = readCallback()
-    if (oauthErr) { setError('Connexion Strava refusée.'); return }
+    const { code, error: oauthErr, stateOk } = readCallback()
+    const bootFromCache = () =>
+      loadCache().then((cached) => {
+        if (cached?.activities?.length) {
+          setData({ activities: cached.activities, athleteName: cached.athleteName, isDemo: false })
+          setSyncedAt(cached.fetchedAt)
+          if (cached.coverageStart) setCoverageStart(cached.coverageStart)
+          setView('studio')
+        }
+      })
+    if (oauthErr) { setError('Connexion Strava refusée.'); bootFromCache(); return }
+    if (code && !stateOk) { setError('Vérification de sécurité échouée, relance la connexion.'); bootFromCache(); return }
     if (code) { connectWithCode(code); return }
-    loadCache().then((cached) => {
-      if (cached?.activities?.length) {
-        setData({ activities: cached.activities, athleteName: cached.athleteName, isDemo: false })
-        setSyncedAt(cached.fetchedAt)
-        if (cached.coverageStart) setCoverageStart(cached.coverageStart)
-        setView('studio')
-      }
-    })
+    bootFromCache()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -74,7 +78,8 @@ export default function App() {
     setError(null)
     try {
       setLoadingMsg('Connexion à Strava…')
-      const { access_token, athlete, expires_at } = await exchangeToken(code)
+      const { access_token, refresh_token, athlete, expires_at } = await exchangeToken(code)
+      tokenRef.current = { accessToken: access_token, refreshToken: refresh_token, expiresAt: expires_at }
       setLoadingMsg('Récupération de tes activités…')
       await fetchAndStore(access_token, athlete?.firstname || athlete?.username || null, expires_at)
       setView('studio')
@@ -85,25 +90,56 @@ export default function App() {
     }
   }
 
-  async function resync() {
+  // Renvoie un access token valide (rafraîchi si besoin via le refresh_token en mémoire),
+  // ou null si aucun token exploitable (typiquement après un rechargement de page).
+  async function ensureFreshToken() {
     const tk = tokenRef.current
-    // token encore valide -> on re-télécharge sur place (avec écran de progression) ;
-    // sinon (ex. après un rafraîchissement, token perdu) on repasse vite par Strava.
-    if (!tk?.accessToken || !tk.expiresAt || tk.expiresAt * 1000 < Date.now() + 60000) {
+    if (!tk?.accessToken) return null
+    const stillValid = tk.expiresAt && tk.expiresAt * 1000 > Date.now() + 60000
+    if (stillValid) return tk.accessToken
+    if (tk.refreshToken) {
+      const r = await refreshAccessToken(tk.refreshToken)
+      tokenRef.current = { accessToken: r.access_token, refreshToken: r.refresh_token || tk.refreshToken, expiresAt: r.expires_at }
+      return r.access_token
+    }
+    return null
+  }
+
+  // Resynchronisation INCRÉMENTALE et EN PLACE : on ne re-télécharge que les activités
+  // depuis la dernière synchro (fusion par id), et on reste dans le studio -> la
+  // personnalisation de la carte n'est pas perdue.
+  async function resync() {
+    let token = null
+    try { token = await ensureFreshToken() } catch (err) { console.error(err) }
+    if (!token) {
+      // plus de token en mémoire (ex. après un F5) -> reconnexion Strava (silencieuse si déjà autorisé)
       if (stravaConfigured) window.location.href = authorizeUrl()
       else setShowSetup(true)
       return
     }
-    setView('loading')
-    setLoadingMsg('Resynchronisation…')
+    setSyncing(true)
     setError(null)
     try {
-      await fetchAndStore(tk.accessToken, data?.athleteName ?? null, tk.expiresAt)
-      setView('studio')
+      const now = new Date()
+      const existing = data?.activities || []
+      const since = syncedAt
+        ? Math.floor(syncedAt / 1000) - 3600 // petit chevauchement d'1 h
+        : Math.floor(new Date(now.getFullYear() - 5, now.getMonth(), 1).getTime() / 1000)
+      const before = Math.floor(now.getTime() / 1000)
+      const fresh = await fetchRange(token, since, before)
+      const byId = new Map(existing.map((a) => [a.id, a]))
+      for (const a of fresh) byId.set(a.id, a) // les récentes remplacent/complètent
+      const merged = [...byId.values()]
+      const fetchedAt = Date.now()
+      const cov = coverageStart || { year: now.getFullYear() - 5, month: now.getMonth() }
+      setData({ activities: merged, athleteName: data?.athleteName ?? null, isDemo: false })
+      setSyncedAt(fetchedAt)
+      saveCache({ activities: merged, athleteName: data?.athleteName ?? null, fetchedAt, coverageStart: cov })
     } catch (err) {
       console.error(err)
       setError(err.message || 'Resynchronisation échouée.')
-      setView('studio')
+    } finally {
+      setSyncing(false)
     }
   }
 
@@ -145,10 +181,10 @@ export default function App() {
           </div>
           {view === 'studio' ? (
             <div className="topbar-actions">
-              {isReal && <span className="sync-status">Synchro {timeAgo(syncedAt)}</span>}
+              {isReal && <span className="sync-status">{syncing ? 'Synchro en cours…' : `Synchro ${timeAgo(syncedAt)}`}</span>}
               {isReal && (
-                <button className="btn btn-ghost btn-sm" onClick={resync}>
-                  <RefreshCw size={14} /> Resync
+                <button className="btn btn-ghost btn-sm" onClick={resync} disabled={syncing}>
+                  <RefreshCw size={14} className={syncing ? 'spin' : ''} /> {syncing ? 'Synchro…' : 'Resync'}
                 </button>
               )}
               <button className="btn btn-ghost btn-sm" onClick={reset}><RotateCcw size={14} /> {isReal ? 'Déconnexion' : 'Changer de source'}</button>

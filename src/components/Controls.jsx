@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { Download, Upload, X, CalendarRange, Layers, Palette, Filter, Type, Share2, Sparkles, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
+import { Download, Upload, X, CalendarRange, Layers, Palette, Filter, Type, Share2, Copy, Sparkles, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
 import { FamilyIcon } from './icons.jsx'
 import { FAMILIES } from '../lib/activityTypes.js'
 import { FORMATS, FORMAT_ORDER } from '../data/formats.js'
@@ -17,9 +17,11 @@ export default function Controls({
   accents, accentId, onAccent,
   theme, onTheme,
   privacy, onPrivacy,
+  showHeatmap, onHeatmap,
   photo, onPhoto, onClearPhoto,
   scrim, onScrim,
   onExport, exporting, onShare, canShare,
+  onCopy, canCopy,
 }) {
   const fileRef = useRef(null)
 
@@ -166,6 +168,13 @@ export default function Controls({
         </div>
 
         <div className="divider" />
+        <div className="field-label">Visuel du bas</div>
+        <div className="segment">
+          <button className={!showHeatmap ? 'active' : ''} onClick={() => onHeatmap(false)}>Carte du spot</button>
+          <button className={showHeatmap ? 'active' : ''} onClick={() => onHeatmap(true)}>Calendrier</button>
+        </div>
+
+        <div className="divider" />
         <div className="field-label"><span><Shield size={13} style={{ verticalAlign: '-2px' }} /> Confidentialité du tracé</span></div>
         <div className="segment">
           <button className={privacy ? 'active' : ''} onClick={() => onPrivacy(true)}>Protégé</button>
@@ -181,11 +190,18 @@ export default function Controls({
       <button className="btn btn-primary" style={{ width: '100%', marginTop: 16, padding: '16px' }} onClick={onExport} disabled={exporting}>
         {exporting ? <><span className="spinner" /> Génération…</> : <><Download size={18} /> Télécharger l'image</>}
       </button>
-      {canShare && (
-        <button className="btn btn-ghost" style={{ width: '100%', marginTop: 10 }} onClick={onShare} disabled={exporting}>
-          <Share2 size={17} /> Partager
-        </button>
-      )}
+      <div className="export-row">
+        {canShare && (
+          <button className="btn btn-ghost" onClick={onShare} disabled={exporting}>
+            <Share2 size={17} /> Partager
+          </button>
+        )}
+        {canCopy && (
+          <button className="btn btn-ghost" onClick={onCopy} disabled={exporting} title="Copier l'image dans le presse-papiers">
+            <Copy size={17} /> Copier
+          </button>
+        )}
+      </div>
     </div>
   )
 }
