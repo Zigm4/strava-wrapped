@@ -1,6 +1,7 @@
 import { familyKey, FAMILIES, FAMILY_ORDER } from './activityTypes.js'
 import { dayLabel } from './format.js'
 import { localDayKey as dayKey, localWeekday, localHour, localDayNumber } from './date.js'
+import { haversineKm } from './geo.js'
 
 // Calcule tout le récap à partir d'une liste d'activités normalisées,
 // filtrée par les familles sélectionnées (`selected` = Set de clés, ou null = tout).
@@ -184,13 +185,6 @@ function findSpot(list) {
   }
   const acts = pts.filter((a) => haversineKm(anchor[0], anchor[1], a.start_latlng[0], a.start_latlng[1]) <= 5)
   return { anchor, acts }
-}
-
-function haversineKm(la1, lo1, la2, lo2) {
-  const R = 6371, toRad = (d) => (d * Math.PI) / 180
-  const dLa = toRad(la2 - la1), dLo = toRad(lo2 - lo1)
-  const x = Math.sin(dLa / 2) ** 2 + Math.cos(toRad(la1)) * Math.cos(toRad(la2)) * Math.sin(dLo / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(x))
 }
 
 // valeur la plus fréquente (ignore null/undefined)

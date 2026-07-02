@@ -6,6 +6,7 @@ import { aggregate, availableFamilies, personalBestIds } from '../lib/aggregate.
 import { familyKey, FAMILIES } from '../lib/activityTypes.js'
 import { reverseGeocode } from '../lib/geocode.js'
 import { monthShort, monthLabel } from '../lib/format.js'
+import { buildSnapshot, shareUrl } from '../lib/share.js'
 import { localYear, localMonth, localParts, localTime } from '../lib/date.js'
 import { monthHeatmap, yearHeatmap } from '../lib/heatmap.js'
 import { FORMATS } from '../data/formats.js'
@@ -338,6 +339,34 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
     }
   }
 
+  // Lien Wrapped partageable : snapshot compact -> #w=... copié dans le presse-papiers.
+  async function handleShareLink() {
+    let url
+    try {
+      const snap = buildSnapshot({
+        summary, formatId, bgId, accentId, theme, scrim,
+        periodLabel, title: resolvedTitle, handle: handle.trim(), privacy,
+        spot, comparison, showDeltas: deltaActive, typeCompare, showHeatmap, heatmap,
+      })
+      url = shareUrl(snap)
+    } catch (err) {
+      console.error(err)
+      setToast({ type: 'err', msg: 'Lien impossible à créer.' })
+      return
+    }
+    if (url.length > 14000) {
+      setToast({ type: 'err', msg: 'Carte trop riche pour un lien — partage plutôt l\'image.' })
+      return
+    }
+    // La copie peut échouer (presse-papiers refusé, page sans focus) : on retombe sur un prompt.
+    try {
+      await navigator.clipboard.writeText(url)
+      setToast({ type: 'ok', msg: 'Lien copié 🔗 colle-le où tu veux' })
+    } catch {
+      window.prompt('Copie ton lien Wrapped :', url)
+    }
+  }
+
   useEffect(() => {
     if (!toast) return
     const t = setTimeout(() => setToast(null), 2800)
@@ -367,6 +396,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
         scrim={scrim} onScrim={setScrim}
         onExport={handleExport} exporting={exporting} onShare={handleShare} canShare={canShare}
         onCopy={handleCopy} canCopy={canCopy}
+        onShareLink={handleShareLink}
       />
 
       <div className="stage-wrap" ref={wrapRef}>

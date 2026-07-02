@@ -1,5 +1,7 @@
 // Décodage des polylignes encodées Strava (algorithme Google) + normalisation en path SVG.
 
+import { haversineMeters } from './geo.js'
+
 export function decodePolyline(str, precision = 5) {
   if (!str) return []
   let index = 0, lat = 0, lng = 0
@@ -50,13 +52,6 @@ export function pointsToPath(points) {
   return points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ')
 }
 
-function haversineM(la1, lo1, la2, lo2) {
-  const R = 6371000, toRad = (d) => (d * Math.PI) / 180
-  const dLa = toRad(la2 - la1), dLo = toRad(lo2 - lo1)
-  const x = Math.sin(dLa / 2) ** 2 + Math.cos(toRad(la1)) * Math.cos(toRad(la2)) * Math.sin(dLo / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(x))
-}
-
 // Confidentialité : rogne les points contigus à moins de `r` mètres du départ ET de l'arrivée
 // (≈ masquer le domicile, comme les "privacy zones" de Strava). Garde le milieu du tracé.
 // Si après rognage il ne reste pas de milieu affichable (tracé entièrement dans la zone
@@ -66,8 +61,8 @@ export function trimRoute(points, r = 300) {
   if (!points || points.length < 2) return null
   const start = points[0], end = points[points.length - 1]
   let i = 0, j = points.length - 1
-  while (i < j && haversineM(points[i][0], points[i][1], start[0], start[1]) <= r) i++
-  while (j > i && haversineM(points[j][0], points[j][1], end[0], end[1]) <= r) j--
+  while (i < j && haversineMeters(points[i][0], points[i][1], start[0], start[1]) <= r) i++
+  while (j > i && haversineMeters(points[j][0], points[j][1], end[0], end[1]) <= r) j--
   const seg = points.slice(i, j + 1)
   return seg.length >= 2 ? seg : null
 }

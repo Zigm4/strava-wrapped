@@ -90,40 +90,6 @@ export async function refreshAccessToken(refresh_token) {
   return res.json() // { access_token, refresh_token, expires_at }
 }
 
-function monthBounds(year, month) {
-  const after = Math.floor(new Date(year, month, 1, 0, 0, 0).getTime() / 1000)
-  const before = Math.floor(new Date(year, month + 1, 1, 0, 0, 0).getTime() / 1000)
-  return { after, before }
-}
-
-// Récupère toutes les activités d'un mois (pagination).
-export async function fetchMonth(accessToken, year, month, onProgress) {
-  const { after, before } = monthBounds(year, month)
-  const all = []
-  let page = 1
-  while (page <= 10) {
-    const params = new URLSearchParams({
-      after: String(after),
-      before: String(before),
-      per_page: '200',
-      page: String(page),
-    })
-    const res = await fetch(`https://www.strava.com/api/v3/athlete/activities?${params}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: 'no-store',
-    })
-    if (res.status === 401) throw new Error('Session Strava expirée, reconnecte-toi.')
-    if (res.status === 429) throw new Error('Limite de requêtes Strava atteinte, réessaie dans 15 min.')
-    if (!res.ok) throw new Error(`Erreur Strava (${res.status})`)
-    const batch = await res.json()
-    all.push(...batch)
-    onProgress?.(all.length)
-    if (batch.length < 200) break
-    page++
-  }
-  return all.map(normalize)
-}
-
 // Récupère TOUTES les activités d'une plage [after, before] (epoch s) en paginant (200/req).
 // Bien plus efficace que mois-par-mois : ~1 requête par tranche de 200 activités.
 export async function fetchRange(accessToken, after, before, onProgress) {

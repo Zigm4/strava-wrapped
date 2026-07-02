@@ -4,6 +4,8 @@ import { RotateCcw, RefreshCw, Lock } from 'lucide-react'
 import Landing from './components/Landing.jsx'
 import Studio from './components/Studio.jsx'
 import StravaSetup from './components/StravaSetup.jsx'
+import SharedView from './components/SharedView.jsx'
+import { readShareHash } from './lib/share.js'
 import { generateDemoActivities } from './lib/demoData.js'
 import { authorizeUrl, readCallback, exchangeToken, refreshAccessToken, fetchRange, stravaConfigured } from './lib/strava.js'
 import { loadCache, saveCache, clearCache } from './lib/cache.js'
@@ -37,10 +39,12 @@ export default function App() {
   const [syncedAt, setSyncedAt] = useState(null)
   const [syncing, setSyncing] = useState(false) // resync en place (sans quitter le studio)
   const [coverageStart, setCoverageStart] = useState(null) // { year, month } : début de l'historique couvert
+  const [shared, setShared] = useState(() => readShareHash()) // instantané reçu via un lien #w=...
   const tokenRef = useRef(null) // { accessToken, refreshToken, expiresAt } - en mémoire, jamais stocké
 
   // Démarrage : retour OAuth, sinon cache local
   useEffect(() => {
+    if (readShareHash()) return // mode "viewer" d'un lien partagé : pas de connexion ni de cache
     const { code, error: oauthErr, stateOk } = readCallback()
     const bootFromCache = () =>
       loadCache().then((cached) => {
@@ -167,6 +171,32 @@ export default function App() {
   }
 
   const isReal = data && !data.isDemo
+
+  function exitShared() {
+    window.history.replaceState({}, '', window.location.origin + window.location.pathname)
+    setShared(null)
+    setView('landing')
+  }
+
+  if (shared) {
+    return (
+      <>
+        <Ambient />
+        <div className="app">
+          <header className="topbar">
+            <div className="brand">
+              <span className="mark">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" aria-hidden><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
+              </span>
+              <span className="name">strava <b>wrapped</b></span>
+            </div>
+            <span className="pill"><Lock size={13} /> Lien 100% local</span>
+          </header>
+          <SharedView snapshot={shared} onCreate={exitShared} />
+        </div>
+      </>
+    )
+  }
 
   return (
     <>
