@@ -6,6 +6,7 @@ import { aggregate, availableFamilies, personalBestIds } from '../lib/aggregate.
 import { familyKey, FAMILIES } from '../lib/activityTypes.js'
 import { reverseGeocode } from '../lib/geocode.js'
 import { monthShort, monthLabel } from '../lib/format.js'
+import { localYear, localMonth, localParts, localTime } from '../lib/date.js'
 import { FORMATS } from '../data/formats.js'
 import { BACKGROUNDS, DEFAULT_BG, ACCENTS, DEFAULT_ACCENT } from '../data/backgrounds.js'
 
@@ -13,29 +14,39 @@ function makeMonth(year, m, count) {
   return { key: `${year}-${m}`, year, month: m, short: monthShort(m), label: monthLabel(year, m), count }
 }
 
+// `outOfRange` : mois antérieur au début de l'historique téléchargé (donnée non récupérée,
+// à distinguer d'un mois réellement sans activité).
+function makeMonthEx(year, m, count, floor) {
+  const out = makeMonth(year, m, count)
+  out.outOfRange = !!floor && (year < floor.year || (year === floor.year && m < floor.month))
+  return out
+}
+
 // Les 12 mois d'une année donnée, avec le nb d'activités.
-function buildMonthsForYear(activities, year) {
+function buildMonthsForYear(activities, year, floor) {
   const counts = {}
   for (const a of activities) {
-    const d = new Date(a.start_date_local)
-    if (d.getFullYear() === year) counts[d.getMonth()] = (counts[d.getMonth()] || 0) + 1
+    if (localYear(a.start_date_local) === year) {
+      const m = localMonth(a.start_date_local)
+      counts[m] = (counts[m] || 0) + 1
+    }
   }
-  return Array.from({ length: 12 }, (_, m) => makeMonth(year, m, counts[m] || 0))
+  return Array.from({ length: 12 }, (_, m) => makeMonthEx(year, m, counts[m] || 0, floor))
 }
 
 // Mois de l'activité la plus récente (pour la sélection par défaut).
 function mostRecentMonth(activities) {
   if (!activities.length) { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() } }
-  let t = -Infinity
-  for (const a of activities) { const x = new Date(a.start_date_local).getTime(); if (x > t) t = x }
-  const d = new Date(t)
-  return { year: d.getFullYear(), month: d.getMonth() }
+  let best = null, bestT = -Infinity
+  for (const a of activities) { const x = localTime(a.start_date_local); if (x > bestT) { bestT = x; best = a } }
+  const p = localParts(best.start_date_local)
+  return { year: p.year, month: p.month }
 }
 
 function buildYears(activities) {
   const counts = {}
   for (const a of activities) {
-    const y = new Date(a.start_date_local).getFullYear()
+    const y = localYear(a.start_date_local)
     counts[y] = (counts[y] || 0) + 1
   }
   let years = Object.keys(counts).map(Number).sort((a, b) => b - a).map((y) => ({ year: y, count: counts[y] }))
@@ -45,7 +56,8 @@ function buildYears(activities) {
 
 const canShare = typeof navigator !== 'undefined' && !!navigator.share && !!navigator.canShare
 
-export default function Studio({ activities, athleteName, isDemo }) {
+export default function Studio({ activities, athleteName, isDemo, coverageStart }) {
+  const dataFloor = coverageStart || null // { year, month } : début de l'historique téléchargé
   const years = useMemo(() => buildYears(activities), [activities])
   const mr = useMemo(() => mostRecentMonth(activities), [activities])
   const nowYear = new Date().getFullYear()
@@ -57,7 +69,7 @@ export default function Studio({ activities, athleteName, isDemo }) {
   const [year, setYear] = useState(() => years[0].year)
   const [monthViewYear, setMonthViewYear] = useState(mr.year)
   const [month, setMonth] = useState(() => makeMonth(mr.year, mr.month, 0))
-  const months = useMemo(() => buildMonthsForYear(activities, monthViewYear), [activities, monthViewYear])
+  const months = useMemo(() => buildMonthsForYear(activities, monthViewYear, dataFloor), [activities, monthViewYear, dataFloor])
 
   const [allActive, setAllActive] = useState(true)
   const [selected, setSelected] = useState(new Set())
@@ -70,19 +82,17 @@ export default function Studio({ activities, athleteName, isDemo }) {
   const [title, setTitle] = useState('')
   const [handle, setHandle] = useState('')
   const [privacy, setPrivacy] = useState(true) // masquer le départ/arrivée du tracé
-  const [showDeltas, setShowDeltas] = useState(false) // écart par type vs période précédente
+  const [compareMode, setCompareMode] = useState('off') // 'off' | 'prev' | 'yoy'
   const [exporting, setExporting] = useState(false)
+  const [capturing, setCapturing] = useState(false) // fige les animations le temps du rendu PNG
   const [toast, setToast] = useState(null)
 
   const background = BACKGROUNDS.find((b) => b.id === bgId) || DEFAULT_BG
   const accent = ACCENTS.find((a) => a.id === accentId) || DEFAULT_ACCENT
 
   const periodActivities = useMemo(() => {
-    if (period === 'year') return activities.filter((a) => new Date(a.start_date_local).getFullYear() === year)
-    return activities.filter((a) => {
-      const d = new Date(a.start_date_local)
-      return d.getFullYear() === month.year && d.getMonth() === month.month
-    })
+    if (period === 'year') return activities.filter((a) => localYear(a.start_date_local) === year)
+    return activities.filter((a) => localYear(a.start_date_local) === month.year && localMonth(a.start_date_local) === month.month)
   }, [activities, period, year, month])
 
   const availFamilies = useMemo(() => availableFamilies(periodActivities), [periodActivities])
@@ -106,9 +116,10 @@ export default function Studio({ activities, athleteName, isDemo }) {
   }, [isDemo, spotLat, spotLng])
 
   const spot = fs ? {
+    // pendant une capture PNG, on n'écrit jamais le placeholder "Localisation…" dans l'image
     name: isDemo
       ? (fs.city || 'Ton terrain de jeu')
-      : (geo?.city || (geoPending ? 'Localisation…' : (fs.city || 'Ton terrain de jeu'))),
+      : (geo?.city || (geoPending && !capturing ? 'Localisation…' : (fs.city || 'Ton terrain de jeu'))),
     region: (isDemo ? [fs.state, fs.country] : [geo?.region, geo?.country]).filter(Boolean).join(' · ') || null,
     count: fs.count,
     distance: fs.distance,
@@ -120,33 +131,57 @@ export default function Studio({ activities, athleteName, isDemo }) {
   const defaultTitle = athleteName || (period === 'year' ? 'Mon année' : 'Mon mois')
   const resolvedTitle = title.trim() || defaultTitle
 
-  // comparaison de distance vs période précédente (même filtre de types)
-  const comparison = useMemo(() => {
-    // période en cours = incomplète -> comparaison trompeuse, on s'abstient
+  // Période de référence pour la comparaison, selon le mode :
+  //   'prev' -> mois (ou année) précédent ; 'yoy' -> même mois l'an dernier (année N-1 si bilan annuel).
+  // `partial` = la comparaison serait trompeuse : période courante incomplète, ou période de
+  // référence antérieure à l'historique téléchargé (donnée manquante, pas "zéro activité").
+  const referencePeriod = useMemo(() => (mode) => {
     const now = new Date()
-    if (period === 'month' && month.year === now.getFullYear() && month.month === now.getMonth()) return null
-    if (period === 'year' && year === now.getFullYear()) return null
-    const keep = (a) => allActive || selected.has(familyKey(a.type))
-    let prevActs, label
+    const currentIncomplete =
+      (period === 'month' && month.year === now.getFullYear() && month.month === now.getMonth()) ||
+      (period === 'year' && year === now.getFullYear())
+
+    let refYear, refMonth, label
     if (period === 'year') {
-      prevActs = activities.filter((a) => new Date(a.start_date_local).getFullYear() === year - 1)
-      label = String(year - 1)
+      refYear = year - 1; refMonth = null; label = String(year - 1)
+    } else if (mode === 'yoy') {
+      refYear = month.year - 1; refMonth = month.month; label = `${monthShort(month.month)} ${month.year - 1}`
     } else {
       const pm = new Date(month.year, month.month - 1, 1)
-      prevActs = activities.filter((a) => {
-        const d = new Date(a.start_date_local)
-        return d.getFullYear() === pm.getFullYear() && d.getMonth() === pm.getMonth()
-      })
-      label = monthShort(pm.getMonth())
+      refYear = pm.getFullYear(); refMonth = pm.getMonth(); label = monthShort(refMonth)
     }
-    const sum = (arr) => arr.filter(keep).reduce((s, a) => s + (a.distance || 0), 0)
-    const cur = sum(periodActivities), prev = sum(prevActs)
-    if (prev <= 0 || cur <= 0) return null
-    return { pct: Math.round(((cur - prev) / prev) * 100), label }
-  }, [activities, period, year, month, periodActivities, allActive, selected])
 
-  // écart de distance par type de sport vs la période précédente (union des sports, filtre respecté)
+    const prevActs = activities.filter((a) => {
+      if (localYear(a.start_date_local) !== refYear) return false
+      return refMonth == null || localMonth(a.start_date_local) === refMonth
+    })
+
+    // La période de référence commence-t-elle avant le début de l'historique téléchargé ?
+    const refM = refMonth == null ? 0 : refMonth
+    const beforeFloor = !!dataFloor &&
+      (refYear < dataFloor.year || (refYear === dataFloor.year && refM < dataFloor.month))
+
+    const reason = currentIncomplete ? 'incomplete' : beforeFloor ? 'nohistory' : null
+    return { prevActs, label, partial: !!reason, reason }
+  }, [activities, period, year, month, dataFloor])
+
+  // effet du mode sur la période de référence : 'yoy' -> même mois l'an dernier ; sinon période précédente
+  const refMode = compareMode === 'yoy' ? 'yoy' : 'prev'
+
+  // comparaison de distance globale (le "+X %"), même filtre de types
+  const comparison = useMemo(() => {
+    const ref = referencePeriod(refMode)
+    if (ref.partial) return null
+    const keep = (a) => allActive || selected.has(familyKey(a.type))
+    const sum = (arr) => arr.filter(keep).reduce((s, a) => s + (a.distance || 0), 0)
+    const cur = sum(periodActivities), prev = sum(ref.prevActs)
+    if (prev <= 0 || cur <= 0) return null
+    return { pct: Math.round(((cur - prev) / prev) * 100), label: ref.label }
+  }, [referencePeriod, refMode, periodActivities, allActive, selected])
+
+  // écart de distance par type de sport vs la période de référence (union des sports, filtre respecté)
   const typeCompare = useMemo(() => {
+    const ref = referencePeriod(refMode)
     const group = (acts) => {
       const m = {}
       for (const a of acts) {
@@ -158,19 +193,7 @@ export default function Studio({ activities, athleteName, isDemo }) {
       }
       return m
     }
-    let prevActs, label
-    if (period === 'year') {
-      prevActs = activities.filter((a) => new Date(a.start_date_local).getFullYear() === year - 1)
-      label = String(year - 1)
-    } else {
-      const pm = new Date(month.year, month.month - 1, 1)
-      prevActs = activities.filter((a) => {
-        const d = new Date(a.start_date_local)
-        return d.getFullYear() === pm.getFullYear() && d.getMonth() === pm.getMonth()
-      })
-      label = monthShort(pm.getMonth())
-    }
-    const cur = group(periodActivities), prev = group(prevActs)
+    const cur = group(periodActivities), prev = group(ref.prevActs)
     const rows = [...new Set([...Object.keys(cur), ...Object.keys(prev)])]
       .map((k) => {
         const c = cur[k] || { dist: 0, elev: 0 }
@@ -182,8 +205,11 @@ export default function Studio({ activities, athleteName, isDemo }) {
         }
       })
       .sort((a, b) => Math.max(b.current, b.previous) - Math.max(a.current, a.previous))
-    return { rows, label }
-  }, [activities, period, year, month, periodActivities, allActive, selected])
+    return { rows, label: ref.label, partial: ref.partial, reason: ref.reason }
+  }, [referencePeriod, refMode, periodActivities, allActive, selected])
+
+  // deltas réellement affichables ? (mode actif ET référence fiable)
+  const deltaActive = compareMode !== 'off' && !typeCompare.partial && typeCompare.rows.length > 0
 
   function resetFilters() { setAllActive(true); setSelected(new Set()) }
   function selectMonth(m) { setMonth(m); resetFilters() }
@@ -233,9 +259,16 @@ export default function Studio({ activities, athleteName, isDemo }) {
   }, [fmt.w, fmt.h])
 
   async function renderPng(pixelRatio) {
-    if (document.fonts?.ready) await document.fonts.ready
-    await toPng(cardRef.current, { pixelRatio: 2, cacheBust: true }) // 1re passe : polices
-    return toPng(cardRef.current, { pixelRatio, cacheBust: true })
+    setCapturing(true) // fige la carte (valeurs finales, sans animation d'entrée) le temps du rendu
+    // laisse React re-rendre en mode figé, puis attend un frame de layout
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    try {
+      if (document.fonts?.ready) await document.fonts.ready
+      await toPng(cardRef.current, { pixelRatio: 2, cacheBust: true }) // 1re passe : polices
+      return await toPng(cardRef.current, { pixelRatio, cacheBust: true })
+    } finally {
+      setCapturing(false)
+    }
   }
   const fileSlug = () => `strava-${periodLabel.replace(/\s+/g, '-').toLowerCase()}`
 
@@ -296,7 +329,8 @@ export default function Studio({ activities, athleteName, isDemo }) {
         years={years} selectedYear={year} onSelectYear={selectYear}
         availFamilies={availFamilies} selectedFamilies={selected} onToggleFamily={toggleFamily}
         onAllFamilies={resetFilters} allActive={allActive}
-        showDeltas={showDeltas} onDeltas={setShowDeltas} deltaLabel={typeCompare.label}
+        compareMode={compareMode} onCompareMode={setCompareMode} deltaLabel={typeCompare.label}
+        comparePartial={compareMode !== 'off' && typeCompare.partial} compareReason={typeCompare.reason}
         formatId={formatId} onFormat={setFormatId}
         title={title} onTitle={setTitle} handle={handle} onHandle={setHandle}
         backgrounds={BACKGROUNDS} bgId={bgId} onBg={chooseBg}
@@ -325,8 +359,9 @@ export default function Studio({ activities, athleteName, isDemo }) {
             spot={spot}
             privacy={privacy}
             comparison={comparison}
-            showDeltas={showDeltas}
+            showDeltas={deltaActive}
             typeCompare={typeCompare}
+            still={capturing}
           />
         </div>
       </div>

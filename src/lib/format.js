@@ -59,9 +59,13 @@ export function monthLabel(year, month) {
   return `${MOIS[month]} ${year}`
 }
 
+// `date` peut être une clé de jour "YYYY-MM-DD" ou une ISO Strava (heure locale + "Z").
+// On lit jour/mois directement dans la chaîne, sans conversion de fuseau.
 export function dayLabel(date) {
-  const d = new Date(date)
-  return `${d.getDate()} ${MOIS_COURT[d.getMonth()]}`
+  const s = String(date)
+  const day = +s.slice(8, 10)
+  const month = +s.slice(5, 7) - 1
+  return `${day} ${MOIS_COURT[month]}`
 }
 
 // "à l'instant" / "il y a 2 h" / "il y a 3 j" à partir d'un timestamp (ms)

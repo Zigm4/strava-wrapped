@@ -59,12 +59,15 @@ function haversineM(la1, lo1, la2, lo2) {
 
 // Confidentialité : rogne les points contigus à moins de `r` mètres du départ ET de l'arrivée
 // (≈ masquer le domicile, comme les "privacy zones" de Strava). Garde le milieu du tracé.
+// Si après rognage il ne reste pas de milieu affichable (tracé entièrement dans la zone
+// "domicile", ou trop court), on renvoie `null` : mieux vaut ne PAS montrer de carte que
+// de révéler le point de départ. L'appelant masque alors la mini-carte.
 export function trimRoute(points, r = 300) {
-  if (!points || points.length < 6) return points
+  if (!points || points.length < 2) return null
   const start = points[0], end = points[points.length - 1]
   let i = 0, j = points.length - 1
   while (i < j && haversineM(points[i][0], points[i][1], start[0], start[1]) <= r) i++
   while (j > i && haversineM(points[j][0], points[j][1], end[0], end[1]) <= r) j--
   const seg = points.slice(i, j + 1)
-  return seg.length >= 2 ? seg : points
+  return seg.length >= 2 ? seg : null
 }

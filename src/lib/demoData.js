@@ -1,6 +1,8 @@
 // Génère ~5 ans d'activités réalistes pour la démo (bilans mensuels et annuels).
 // Déterministe (seed fixe) pour que la carte ne se réorganise pas à chaque rendu.
 
+import { toStravaLocal } from './date.js'
+
 function mulberry32(seed) {
   return function () {
     seed |= 0; seed = (seed + 0x6d2b79f5) | 0
@@ -120,7 +122,8 @@ function makeActivity(rng, type, date, id) {
     elapsed_time: Math.round(moving_time * between(rng, 1.03, 1.25)),
     total_elevation_gain: Math.round(elev),
     total_elevation_loss: Math.round(elev * between(rng, 0.9, 1.1)),
-    start_date_local: date.toISOString(),
+    // heure murale locale + "Z", comme le fait l'API Strava (voir lib/date.js)
+    start_date_local: toStravaLocal(date),
     average_speed: speed,
     max_speed: speed * between(rng, 1.3, 1.9),
     location_city: spot.city,

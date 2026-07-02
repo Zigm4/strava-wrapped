@@ -35,7 +35,8 @@ export default function App() {
   const [loadingMsg, setLoadingMsg] = useState('')
   const [showSetup, setShowSetup] = useState(false)
   const [syncedAt, setSyncedAt] = useState(null)
-  const tokenRef = useRef(null) // { accessToken, expiresAt } - en mémoire, jamais stocké
+  const [coverageStart, setCoverageStart] = useState(null) // { year, month } : début de l'historique couvert
+  const tokenRef = useRef(null) // { accessToken, refreshToken, expiresAt } - en mémoire, jamais stocké
 
   // Démarrage : retour OAuth, sinon cache local
   useEffect(() => {
@@ -46,6 +47,7 @@ export default function App() {
       if (cached?.activities?.length) {
         setData({ activities: cached.activities, athleteName: cached.athleteName, isDemo: false })
         setSyncedAt(cached.fetchedAt)
+        if (cached.coverageStart) setCoverageStart(cached.coverageStart)
         setView('studio')
       }
     })
@@ -59,10 +61,12 @@ export default function App() {
     const before = Math.floor(now.getTime() / 1000)
     const all = await fetchRange(token, after, before, (n) => setLoadingMsg(`${n} activités récupérées…`))
     const fetchedAt = Date.now()
-    tokenRef.current = { accessToken: token, expiresAt }
+    const cov = { year: now.getFullYear() - 5, month: now.getMonth() }
+    tokenRef.current = { ...(tokenRef.current || {}), accessToken: token, expiresAt }
     setData({ activities: all, athleteName, isDemo: false })
     setSyncedAt(fetchedAt)
-    saveCache({ activities: all, athleteName, fetchedAt })
+    setCoverageStart(cov)
+    saveCache({ activities: all, athleteName, fetchedAt, coverageStart: cov })
   }
 
   async function connectWithCode(code) {
@@ -110,7 +114,9 @@ export default function App() {
 
   function handleDemo() {
     setError(null)
+    const now = new Date()
     setData({ activities: generateDemoActivities(), athleteName: null, isDemo: true })
+    setCoverageStart({ year: now.getFullYear() - 5, month: now.getMonth() })
     setView('studio')
   }
 
@@ -119,6 +125,7 @@ export default function App() {
     tokenRef.current = null
     setData(null)
     setSyncedAt(null)
+    setCoverageStart(null)
     setError(null)
     setView('landing')
   }
@@ -165,7 +172,7 @@ export default function App() {
         )}
 
         {view === 'studio' && data && (
-          <Studio activities={data.activities} athleteName={data.athleteName} isDemo={data.isDemo} />
+          <Studio activities={data.activities} athleteName={data.athleteName} isDemo={data.isDemo} coverageStart={coverageStart} />
         )}
       </div>
 

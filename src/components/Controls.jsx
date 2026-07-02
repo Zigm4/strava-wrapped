@@ -10,7 +10,7 @@ export default function Controls({
   monthViewYear, onPrevYear, onNextYear, canPrevYear, canNextYear,
   years, selectedYear, onSelectYear,
   availFamilies, selectedFamilies, onToggleFamily, onAllFamilies, allActive,
-  showDeltas, onDeltas, deltaLabel,
+  compareMode, onCompareMode, deltaLabel, comparePartial, compareReason,
   formatId, onFormat,
   title, onTitle, handle, onHandle,
   backgrounds, bgId, onBg,
@@ -50,9 +50,15 @@ export default function Controls({
             </div>
             <div className="months months-12">
               {months.map((m) => (
-                <button key={m.key} className={`month-chip ${m.key === selectedMonthKey ? 'active' : ''} ${m.count === 0 ? 'empty' : ''}`} onClick={() => onSelectMonth(m)}>
+                <button
+                  key={m.key}
+                  className={`month-chip ${m.key === selectedMonthKey ? 'active' : ''} ${m.count === 0 ? 'empty' : ''} ${m.outOfRange ? 'out-of-range' : ''}`}
+                  disabled={m.outOfRange}
+                  title={m.outOfRange ? 'Hors de l\'historique téléchargé (5 ans)' : undefined}
+                  onClick={() => onSelectMonth(m)}
+                >
                   <div className="m">{m.short}</div>
-                  <div className="y">{m.count > 0 ? `${m.count} act.` : '-'}</div>
+                  <div className="y">{m.outOfRange ? '—' : m.count > 0 ? `${m.count} act.` : '-'}</div>
                 </button>
               ))}
             </div>
@@ -89,9 +95,21 @@ export default function Controls({
         <div className="divider" />
         <div className="field-label">Comparaison</div>
         <div className="segment">
-          <button className={!showDeltas ? 'active' : ''} onClick={() => onDeltas(false)}>Simple</button>
-          <button className={showDeltas ? 'active' : ''} onClick={() => onDeltas(true)}>Écart vs {deltaLabel}</button>
+          <button className={compareMode === 'off' ? 'active' : ''} onClick={() => onCompareMode('off')}>Simple</button>
+          <button className={compareMode === 'prev' ? 'active' : ''} onClick={() => onCompareMode('prev')}>
+            {period === 'year' ? `vs ${selectedYear - 1}` : 'Mois préc.'}
+          </button>
+          {period === 'month' && (
+            <button className={compareMode === 'yoy' ? 'active' : ''} onClick={() => onCompareMode('yoy')}>An dernier</button>
+          )}
         </div>
+        {comparePartial && (
+          <div className="helper">
+            {compareReason === 'incomplete'
+              ? 'Comparaison masquée : période en cours (incomplète).'
+              : `Pas d'historique avant ${deltaLabel} pour comparer (limite : 5 ans).`}
+          </div>
+        )}
       </div>
 
       {/* Format */}

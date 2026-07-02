@@ -69,7 +69,7 @@ function deltaElevText(d) {
 }
 
 const StoryCard = forwardRef(function StoryCard(
-  { summary, formatId = 'story', background, photo, periodLabel, scrim, accent, theme = 'dark', title, handle, spot, privacy = true, comparison, showDeltas, typeCompare },
+  { summary, formatId = 'story', background, photo, periodLabel, scrim, accent, theme = 'dark', title, handle, spot, privacy = true, comparison, showDeltas, typeCompare, still = false },
   ref,
 ) {
   const fmt = FORMATS[formatId] || FORMATS.story
@@ -125,7 +125,7 @@ const StoryCard = forwardRef(function StoryCard(
       <div className="scrim" />
       <div className="grain-c" />
 
-      <motion.div className="content" variants={container} initial="hidden" animate="show">
+      <motion.div className="content" variants={container} initial={still ? 'show' : 'hidden'} animate="show">
         {/* header */}
         <motion.div className="c-head" variants={item}>
           <div className="who">
@@ -140,7 +140,7 @@ const StoryCard = forwardRef(function StoryCard(
         <motion.div className="hero" variants={item}>
           <div className="label">Distance parcourue</div>
           <div className="value">
-            <AnimatedNumber value={summary.totalDistance} format={(v) => fmtKm(v)} />
+            <AnimatedNumber value={summary.totalDistance} format={(v) => fmtKm(v)} still={still} />
             <span className="unit">km</span>
           </div>
           <div className="accent-bar" />
@@ -163,17 +163,17 @@ const StoryCard = forwardRef(function StoryCard(
         <motion.div className="stat-row" variants={item}>
           <div className="stat">
             <div className="s-ico"><Mountain size={30} /></div>
-            <div className="s-val"><AnimatedNumber value={summary.totalElevation} format={fmtElev} /><span className="u">m</span></div>
+            <div className="s-val"><AnimatedNumber value={summary.totalElevation} format={fmtElev} still={still} /><span className="u">m</span></div>
             <div className="s-lbl">Dénivelé +</div>
           </div>
           <div className="stat">
             <div className="s-ico"><Timer size={30} /></div>
-            <div className="s-val"><AnimatedNumber value={summary.totalMovingTime} format={fmtHours} /><span className="u">h</span></div>
+            <div className="s-val"><AnimatedNumber value={summary.totalMovingTime} format={fmtHours} still={still} /><span className="u">h</span></div>
             <div className="s-lbl">En mouvement</div>
           </div>
           <div className="stat">
             <div className="s-ico"><Award size={30} /></div>
-            <div className="s-val"><AnimatedNumber value={summary.achievements || summary.kudos} format={fmtInt} /></div>
+            <div className="s-val"><AnimatedNumber value={summary.achievements || summary.kudos} format={fmtInt} still={still} /></div>
             <div className="s-lbl">{summary.achievements ? 'Trophées' : 'Kudos'}</div>
           </div>
         </motion.div>

@@ -228,6 +228,9 @@ a { color: inherit; text-decoration: none; }
 .months-12 { grid-template-columns: repeat(4, 1fr); }
 .month-chip.empty { opacity: 0.4; }
 .month-chip.empty.active { opacity: 1; }
+.month-chip.out-of-range { opacity: 0.28; cursor: not-allowed; }
+.month-chip.out-of-range:hover { border-color: var(--border); background: rgba(255,255,255,0.02); }
+.month-chip:disabled { pointer-events: none; }
 
 /* navigateur d'année (mode "Par mois") */
 .year-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 2px; }

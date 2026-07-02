@@ -1,7 +1,6 @@
 import { familyKey, FAMILIES, FAMILY_ORDER } from './activityTypes.js'
 import { dayLabel } from './format.js'
-
-const dayKey = (iso) => String(iso).slice(0, 10)
+import { localDayKey as dayKey, localWeekday, localHour, localDayNumber } from './date.js'
 
 // Calcule tout le récap à partir d'une liste d'activités normalisées,
 // filtrée par les familles sélectionnées (`selected` = Set de clés, ou null = tout).
@@ -131,7 +130,7 @@ export function aggregate(activities, selected, recordIds) {
     longestTime: longestTime && { activity: longestTime, time: longestTime.moving_time },
     bestRun: bestRun && { activity: bestRun, speed: bestRun.average_speed },
     bestRide: bestRide && { activity: bestRide, speed: bestRide.average_speed },
-    topDay: topDay && { day: dayLabel(topDay[0] + 'T12:00:00'), distance: topDay[1] },
+    topDay: topDay && { day: dayLabel(topDay[0]), distance: topDay[1] },
   }
 
   // compétitions : activités taguées "Race" sur Strava (workout_type 1 = course à pied, 11 = vélo)
@@ -151,9 +150,9 @@ export function aggregate(activities, selected, recordIds) {
   let weekendCount = 0
   const parts = {}
   for (const a of list) {
-    const d = new Date(a.start_date_local)
-    if (d.getDay() === 0 || d.getDay() === 6) weekendCount++
-    const h = d.getHours()
+    const wd = localWeekday(a.start_date_local)
+    if (wd === 0 || wd === 6) weekendCount++
+    const h = localHour(a.start_date_local)
     const part = h < 5 ? 'nuit' : h < 11 ? 'matin' : h < 14 ? 'midi' : h < 18 ? 'après-midi' : h < 23 ? 'soir' : 'nuit'
     parts[part] = (parts[part] || 0) + 1
   }
@@ -208,7 +207,7 @@ function mode(arr) {
 function longestStreak(dayKeys) {
   if (!dayKeys.length) return 0
   const days = dayKeys
-    .map((d) => Math.floor(new Date(d + 'T12:00:00').getTime() / 86400000))
+    .map((d) => localDayNumber(d))
     .sort((a, b) => a - b)
   let best = 1, cur = 1
   for (let i = 1; i < days.length; i++) {
