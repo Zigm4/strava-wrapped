@@ -16,3 +16,27 @@
 
 [functions]
   node_bundler = "esbuild"
+
+# SPA : une seule page, pas de routes serveur côté front.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# En-têtes de sécurité pour tout le site.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), camera=(), microphone=()"
+    # CSP : tout en self, sauf les appels directs à Strava et le géocodage Nominatim.
+    # (Les polices sont auto-hébergées, donc pas de fonts.googleapis.com.)
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://www.strava.com https://nominatim.openstreetmap.org; font-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+
+# Assets hashés par Vite = immuables : cache long.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

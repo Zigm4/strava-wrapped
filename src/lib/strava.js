@@ -17,26 +17,46 @@ export function redirectUri() {
   return window.location.origin + window.location.pathname
 }
 
+const STATE_KEY = 'strava_oauth_state'
+
+function newState() {
+  try { return crypto.randomUUID() } catch { return `${Date.now()}-${Math.random().toString(36).slice(2)}` }
+}
+
 export function authorizeUrl() {
+  // `state` anti-CSRF : nonce stocké côté client, vérifié au retour (cf. readCallback).
+  const state = newState()
+  try { sessionStorage.setItem(STATE_KEY, state) } catch { /* mode privé : on dégrade proprement */ }
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     redirect_uri: redirectUri(),
     response_type: 'code',
     approval_prompt: 'auto',
     scope: SCOPE,
+    state,
   })
   return `https://www.strava.com/oauth/authorize?${params}`
 }
 
-// Lit ?code= / ?error= au retour de Strava puis nettoie l'URL.
+// Lit ?code= / ?error= au retour de Strava, vérifie le `state`, puis nettoie l'URL.
+// `stateOk` = false si le nonce ne correspond pas (callback potentiellement forgé).
 export function readCallback() {
   const p = new URLSearchParams(window.location.search)
   const code = p.get('code')
   const error = p.get('error')
+  const returnedState = p.get('state')
   if (code || error) {
     window.history.replaceState({}, '', redirectUri())
   }
-  return { code, error }
+  let stateOk = true
+  if (code) {
+    let saved = null
+    try { saved = sessionStorage.getItem(STATE_KEY); sessionStorage.removeItem(STATE_KEY) } catch { /* noop */ }
+    // Si sessionStorage est indisponible (saved === null sans écriture possible), on n'échoue pas
+    // le flux pour ne pas casser les navigateurs en mode strict ; sinon on exige la correspondance.
+    stateOk = saved == null ? true : saved === returnedState
+  }
+  return { code, error, stateOk }
 }
 
 // Échange le code contre un token via la fonction serverless (qui détient le secret).
@@ -51,7 +71,23 @@ export async function exchangeToken(code) {
     const txt = await res.text().catch(() => '')
     throw new Error(`Échange du token échoué (${res.status}). ${txt}`)
   }
-  return res.json() // { access_token, athlete, ... }
+  return res.json() // { access_token, refresh_token, expires_at, athlete }
+}
+
+// Rafraîchit un access_token expiré à partir du refresh_token (grant refresh_token),
+// via la même fonction serverless. Le refresh_token vit uniquement en mémoire de session.
+export async function refreshAccessToken(refresh_token) {
+  if (!TOKEN_URL) throw new Error('VITE_TOKEN_EXCHANGE_URL non configuré')
+  const res = await fetch(TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token }),
+  })
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '')
+    throw new Error(`Rafraîchissement du token échoué (${res.status}). ${txt}`)
+  }
+  return res.json() // { access_token, refresh_token, expires_at }
 }
 
 function monthBounds(year, month) {
