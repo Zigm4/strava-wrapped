@@ -602,6 +602,33 @@ a { color: inherit; text-decoration: none; }
 .card.empty .big { font-family: var(--font-display); font-size: 60px; font-weight: 700; }
 .card.empty p { font-size: 26px; color: var(--ink-dim); max-width: 22ch; }
 
+/* ---------- Poster (mosaïque de tracés) ---------- */
+.card.poster .content { justify-content: flex-start; gap: 0; }
+.poster-head { display: flex; flex-direction: column; justify-content: center; gap: 16px; }
+.poster-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.poster .badge {
+  display: inline-flex; align-items: center; gap: 12px; align-self: flex-start;
+  padding: 12px 20px; border-radius: 999px;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
+  font-size: 26px; font-weight: 600; letter-spacing: -0.01em;
+}
+.poster .badge .strava-dot { width: 16px; height: 16px; border-radius: 5px; background: var(--strava); }
+.card.poster[data-theme="light"] .badge { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.1); }
+.poster-period { font-family: var(--font-display); font-weight: 700; font-size: 92px; line-height: 1; letter-spacing: -0.02em; }
+.poster-sub { font-size: 30px; color: var(--ink-dim); }
+.poster-grid { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.poster-foot { display: flex; flex-direction: column; justify-content: flex-end; gap: 22px; }
+.poster-legend { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+.pl-item { display: inline-flex; align-items: center; gap: 10px; font-size: 24px; color: var(--ink-dim); }
+.pl-item i { width: 24px; height: 8px; border-radius: 4px; display: inline-block; }
+.pl-note { font-size: 22px; color: var(--ink-dim); opacity: 0.82; }
+.poster-stats { display: flex; gap: 44px; }
+.poster-stats .ps { display: flex; flex-direction: column; }
+.poster-stats .ps b { font-family: var(--font-display); font-size: 54px; font-weight: 700; line-height: 1; }
+.poster-stats .ps span { font-size: 22px; color: var(--ink-dim); margin-top: 8px; }
+.poster-powered { text-align: left; }
+.poster-empty { display: flex; flex-direction: column; align-items: center; gap: 14px; color: var(--ink-dim); }
+
 /* ---------- misc ---------- */
 .toast {
   position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%);

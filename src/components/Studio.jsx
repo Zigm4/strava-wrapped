@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useLayoutEffect, useEffect } from 'react'
 import { toPng } from 'html-to-image'
 import Controls from './Controls.jsx'
 import StoryCard from './StoryCard.jsx'
+import PosterCard from './PosterCard.jsx'
 import { aggregate, availableFamilies, personalBestIds } from '../lib/aggregate.js'
 import { familyKey, FAMILIES } from '../lib/activityTypes.js'
 import { reverseGeocode } from '../lib/geocode.js'
@@ -9,7 +10,7 @@ import { monthShort, monthLabel } from '../lib/format.js'
 import { buildSnapshot, shareUrl } from '../lib/share.js'
 import { localYear, localMonth, localParts, localTime } from '../lib/date.js'
 import { monthHeatmap, yearHeatmap } from '../lib/heatmap.js'
-import { FORMATS } from '../data/formats.js'
+import { FORMATS, isPoster } from '../data/formats.js'
 import { BACKGROUNDS, DEFAULT_BG, ACCENTS, DEFAULT_ACCENT } from '../data/backgrounds.js'
 
 function makeMonth(year, m, count) {
@@ -99,6 +100,11 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
     return activities.filter((a) => localYear(a.start_date_local) === month.year && localMonth(a.start_date_local) === month.month)
   }, [activities, period, year, month])
 
+  // activités de la période après filtre de familles (pour le poster mosaïque)
+  const filteredActivities = useMemo(
+    () => (allActive ? periodActivities : periodActivities.filter((a) => selected.has(familyKey(a.type)))),
+    [periodActivities, allActive, selected],
+  )
   const availFamilies = useMemo(() => availableFamilies(periodActivities), [periodActivities])
   // records perso calculés sur TOUT l'historique (pas seulement la période)
   const recordIds = useMemo(() => personalBestIds(activities), [activities])
@@ -286,7 +292,8 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
     if (!cardRef.current) return
     setExporting(true)
     try {
-      const dataUrl = await renderPng(2.5)
+      // le poster s'exporte en très haute résolution (proche A3 @ 300 dpi) pour l'impression
+      const dataUrl = await renderPng(isPoster(formatId) ? 3 : 2.5)
       const link = document.createElement('a')
       link.download = `${fileSlug()}.png`
       link.href = dataUrl
@@ -401,27 +408,44 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
 
       <div className="stage-wrap" ref={wrapRef}>
         <div className="stage" style={{ transform: `scale(${scale})` }}>
-          <StoryCard
-            ref={cardRef}
-            summary={summary}
-            formatId={formatId}
-            background={background}
-            photo={photo}
-            periodLabel={periodLabel}
-            scrim={scrim}
-            accent={accent}
-            theme={theme}
-            title={resolvedTitle}
-            handle={handle.trim()}
-            spot={spot}
-            privacy={privacy}
-            comparison={comparison}
-            showDeltas={deltaActive}
-            typeCompare={typeCompare}
-            showHeatmap={showHeatmap}
-            heatmap={heatmap}
-            still={capturing}
-          />
+          {isPoster(formatId) ? (
+            <PosterCard
+              ref={cardRef}
+              activities={filteredActivities}
+              summary={summary}
+              title={resolvedTitle}
+              handle={handle.trim()}
+              periodLabel={periodLabel}
+              background={background}
+              photo={photo}
+              scrim={scrim}
+              accent={accent}
+              theme={theme}
+              privacy={privacy}
+            />
+          ) : (
+            <StoryCard
+              ref={cardRef}
+              summary={summary}
+              formatId={formatId}
+              background={background}
+              photo={photo}
+              periodLabel={periodLabel}
+              scrim={scrim}
+              accent={accent}
+              theme={theme}
+              title={resolvedTitle}
+              handle={handle.trim()}
+              spot={spot}
+              privacy={privacy}
+              comparison={comparison}
+              showDeltas={deltaActive}
+              typeCompare={typeCompare}
+              showHeatmap={showHeatmap}
+              heatmap={heatmap}
+              still={capturing}
+            />
+          )}
         </div>
       </div>
 
