@@ -52,15 +52,27 @@ async function encodeWebCodecs(tl, { W, H, acc, theme, bg, fps, codec }, onProgr
     video: { codec: 'avc', width: W, height: H },
     fastStart: 'in-memory',
   })
+  let encoderError = null
   const encoder = new window.VideoEncoder({
     output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-    error: (e) => console.error('VideoEncoder', e),
+    error: (e) => { encoderError = e; console.error('VideoEncoder', e) },
   })
   encoder.configure({ codec, width: W, height: H, bitrate: 8_000_000, framerate: fps })
 
   const total = Math.max(1, Math.ceil(tl.total * fps))
   const gop = fps * 2
+  // Backpressure : l'encodeur (surtout matériel, sur mobile) est plus lent que la boucle.
+  // Sans attendre qu'il draine sa file, les VideoFrame en attente s'accumulent en mémoire
+  // et l'onglet finit tué par l'OS (la page « revient » alors à l'accueil). On borne donc
+  // la profondeur de file : on cède la main jusqu'à ce qu'elle redescende.
+  const MAX_QUEUE = 6
   for (let f = 0; f < total; f++) {
+    if (encoderError) throw encoderError
+    while (encoder.encodeQueueSize > MAX_QUEUE) {
+      await new Promise((r) => setTimeout(r, 8))
+      if (encoderError) throw encoderError
+      if (encoder.state !== 'configured') throw new Error('encoder-closed')
+    }
     const t = f / fps
     drawFrame(ctx, tl, t, { W, H, acc, theme, bg })
     const frame = new window.VideoFrame(canvas, { timestamp: Math.round((f * 1e6) / fps), duration: Math.round(1e6 / fps) })
