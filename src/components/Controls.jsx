@@ -20,6 +20,7 @@ export default function Controls({
   theme, onTheme,
   privacy, onPrivacy,
   showHeatmap, onHeatmap,
+  spotChips, spotIndex, onSpotSelect, spotCount,
   photo, onPhoto, onClearPhoto,
   scrim, onScrim,
   onExport, exporting, onShare, canShare,
@@ -48,6 +49,7 @@ export default function Controls({
         accents={accents} accentId={accentId} onAccent={onAccent}
         theme={theme} onTheme={onTheme}
         showHeatmap={showHeatmap} onHeatmap={onHeatmap}
+        spotChips={spotChips} spotIndex={spotIndex} onSpotSelect={onSpotSelect} spotCount={spotCount}
         privacy={privacy} onPrivacy={onPrivacy}
         photo={photo} onPhoto={onPhoto} onClearPhoto={onClearPhoto}
         scrim={scrim} onScrim={onScrim}

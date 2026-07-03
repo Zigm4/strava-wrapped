@@ -46,6 +46,7 @@ export function aggregate(activities, selected, recordIds) {
     records: {},
     races: [],
     favoriteSpot: null,
+    spots: [],
     heroRoute: null,
     activeDays: 0,
     streak: 0,
@@ -97,26 +98,12 @@ export function aggregate(activities, selected, recordIds) {
   summary.byType = Object.values(byKey).sort((x, y) => y.distance - x.distance)
   summary.dominantFamily = summary.byType[0]?.key || null
 
-  // --- spot favori : zone GPS la plus fréquentée (grille fixe, sans chaînage) ---
-  const spot = findSpot(list)
-  if (spot) {
-    // activité représentative = la plus longue DU SPOT qui a un tracé.
-    // Ville ET carte en dérivent (on géocode son départ) -> jamais de décalage.
-    const rep = spot.acts
-      .filter((a) => a.routePoints && a.routePoints.length > 1)
-      .sort((x, y) => (y.distance || 0) - (x.distance || 0))[0]
-    summary.favoriteSpot = {
-      count: spot.acts.length,
-      distance: spot.acts.reduce((s, a) => s + (a.distance || 0), 0),
-      elevation: spot.acts.reduce((s, a) => s + (a.total_elevation_gain || 0), 0),
-      latlng: rep ? rep.start_latlng : spot.anchor, // point géocodé = départ du tracé montré
-      city: rep?.location_city ?? mode(spot.acts.map((a) => a.location_city)),
-      state: rep?.location_state ?? mode(spot.acts.map((a) => a.location_state)),
-      country: rep?.location_country ?? mode(spot.acts.map((a) => a.location_country)),
-      topType: mode(spot.acts.map((a) => familyKey(a.type))),
-    }
-    summary.heroRoute = rep ? rep.routePoints : null
-  }
+  // --- spots favoris : les zones GPS les plus fréquentées de la période (jusqu'à 6, distinctes) ---
+  // On expose la liste ordonnée pour laisser l'utilisateur choisir ; le 1er (le plus dense)
+  // reste le défaut, rétro-compatible avec favoriteSpot / heroRoute.
+  summary.spots = findSpots(list, 6).map(describeSpot)
+  summary.favoriteSpot = summary.spots[0] || null
+  summary.heroRoute = summary.spots[0]?.route || null
 
   // active days + plus longue série
   summary.activeDays = daySet.size
@@ -164,27 +151,54 @@ export function aggregate(activities, selected, recordIds) {
   return summary
 }
 
-// Spot favori : cellule de grille (~3 km) la plus fréquentée, puis toutes les sorties
-// à <=5 km de son point de départ réel le plus central. Grille fixe = pas de chaînage.
-function findSpot(list) {
-  const pts = list.filter((a) => a.start_latlng)
-  if (!pts.length) return null
-  const cells = {}
-  for (const a of pts) {
-    const k = `${Math.round(a.start_latlng[0] / 0.03)},${Math.round(a.start_latlng[1] / 0.03)}`
-    ;(cells[k] || (cells[k] = [])).push(a)
+// Spots favoris : on répète l'extraction du spot le plus dense en RETIRANT à chaque tour
+// les sorties déjà rattachées -> des zones distinctes, ordonnées par fréquentation.
+// Un spot = cellule de grille (~3 km) la plus fréquentée du reste, puis toutes les sorties
+// à <=5 km de son point de départ réel le plus central (médoïde). Grille fixe = pas de chaînage.
+function findSpots(list, max = 6) {
+  let pool = list.filter((a) => a.start_latlng)
+  const spots = []
+  while (pool.length && spots.length < max) {
+    const cells = {}
+    for (const a of pool) {
+      const k = `${Math.round(a.start_latlng[0] / 0.03)},${Math.round(a.start_latlng[1] / 0.03)}`
+      ;(cells[k] || (cells[k] = [])).push(a)
+    }
+    const densest = Object.values(cells).sort((x, y) => y.length - x.length)[0]
+    const mLat = densest.reduce((s, a) => s + a.start_latlng[0], 0) / densest.length
+    const mLng = densest.reduce((s, a) => s + a.start_latlng[1], 0) / densest.length
+    // ancre = départ réel le plus central (médoïde) -> géocodage fiable d'un point existant
+    let anchor = densest[0].start_latlng, best = Infinity
+    for (const a of densest) {
+      const d = haversineKm(mLat, mLng, a.start_latlng[0], a.start_latlng[1])
+      if (d < best) { best = d; anchor = a.start_latlng }
+    }
+    const acts = pool.filter((a) => haversineKm(anchor[0], anchor[1], a.start_latlng[0], a.start_latlng[1]) <= 5)
+    spots.push({ anchor, acts })
+    const taken = new Set(acts)
+    pool = pool.filter((a) => !taken.has(a)) // évite le chevauchement -> spots distincts
   }
-  const densest = Object.values(cells).sort((x, y) => y.length - x.length)[0]
-  const mLat = densest.reduce((s, a) => s + a.start_latlng[0], 0) / densest.length
-  const mLng = densest.reduce((s, a) => s + a.start_latlng[1], 0) / densest.length
-  // ancre = départ réel le plus central (médoïde) -> géocodage fiable d'un point existant
-  let anchor = densest[0].start_latlng, best = Infinity
-  for (const a of densest) {
-    const d = haversineKm(mLat, mLng, a.start_latlng[0], a.start_latlng[1])
-    if (d < best) { best = d; anchor = a.start_latlng }
+  return spots
+}
+
+// Transforme un cluster { anchor, acts } en objet d'affichage (ville, stats, tracé représentatif).
+function describeSpot(spot) {
+  // activité représentative = la plus longue DU SPOT qui a un tracé.
+  // Ville ET carte en dérivent (on géocode son départ) -> jamais de décalage.
+  const rep = spot.acts
+    .filter((a) => a.routePoints && a.routePoints.length > 1)
+    .sort((x, y) => (y.distance || 0) - (x.distance || 0))[0]
+  return {
+    count: spot.acts.length,
+    distance: spot.acts.reduce((s, a) => s + (a.distance || 0), 0),
+    elevation: spot.acts.reduce((s, a) => s + (a.total_elevation_gain || 0), 0),
+    latlng: rep ? rep.start_latlng : spot.anchor, // point géocodé = départ du tracé montré
+    city: rep?.location_city ?? mode(spot.acts.map((a) => a.location_city)),
+    state: rep?.location_state ?? mode(spot.acts.map((a) => a.location_state)),
+    country: rep?.location_country ?? mode(spot.acts.map((a) => a.location_country)),
+    topType: mode(spot.acts.map((a) => familyKey(a.type))),
+    route: rep ? rep.routePoints : null,
   }
-  const acts = pts.filter((a) => haversineKm(anchor[0], anchor[1], a.start_latlng[0], a.start_latlng[1]) <= 5)
-  return { anchor, acts }
 }
 
 // valeur la plus fréquente (ignore null/undefined)

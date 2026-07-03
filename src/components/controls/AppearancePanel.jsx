@@ -1,11 +1,13 @@
 import { useRef } from 'react'
-import { Upload, X, Palette, Sparkles, Shield } from 'lucide-react'
+import { Upload, X, Palette, Sparkles, Shield, MapPin, Check } from 'lucide-react'
+import { FAMILIES } from '../../lib/activityTypes.js'
 
 export default function AppearancePanel({
   backgrounds, bgId, onBg,
   accents, accentId, onAccent,
   theme, onTheme,
   showHeatmap, onHeatmap,
+  spotChips = [], spotIndex = 0, onSpotSelect, spotCount = 0,
   privacy, onPrivacy,
   photo, onPhoto, onClearPhoto,
   scrim, onScrim,
@@ -59,6 +61,27 @@ export default function AppearancePanel({
         <button className={!showHeatmap ? 'active' : ''} onClick={() => onHeatmap(false)}>Carte du spot</button>
         <button className={showHeatmap ? 'active' : ''} onClick={() => onHeatmap(true)}>Calendrier</button>
       </div>
+
+      {!showHeatmap && spotCount > 1 && (
+        <>
+          <div className="field-label" style={{ marginTop: 16 }}>
+            <span><MapPin size={13} style={{ verticalAlign: '-2px' }} /> Spot affiché</span>
+          </div>
+          <div className="spot-picker">
+            {spotChips.map((c, i) => (
+              <button key={i} type="button" className={`spot-chip ${i === spotIndex ? 'active' : ''}`} onClick={() => onSpotSelect(i)}>
+                <span className="spot-chip-name">
+                  {i === spotIndex
+                    ? <Check size={13} className="spot-chip-check" />
+                    : <i className="spot-dot" style={{ background: (c.type && FAMILIES[c.type]?.color) || 'var(--accent)' }} />}
+                  <span className="spot-chip-label">{c.label}</span>
+                </span>
+                <span className="spot-chip-sub">{c.sub}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="divider" />
       <div className="field-label"><span><Shield size={13} style={{ verticalAlign: '-2px' }} /> Confidentialité du tracé</span></div>

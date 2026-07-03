@@ -140,3 +140,52 @@ describe('aggregate (sur la démo déterministe)', () => {
     expect(s.totalDistance).toBe(0)
   })
 })
+
+describe('spots favoris (multi-spots)', () => {
+  const acts = generateDemoActivities()
+
+  it('expose une liste de spots ; favoriteSpot = 1er, heroRoute = son tracé', () => {
+    const s = aggregate(acts, null, null)
+    expect(Array.isArray(s.spots)).toBe(true)
+    expect(s.spots.length).toBeGreaterThan(1)
+    expect(s.favoriteSpot).toBe(s.spots[0])
+    expect(s.heroRoute).toBe(s.spots[0].route)
+  })
+
+  it('les spots sont distincts (positions différentes)', () => {
+    const s = aggregate(acts, null, null)
+    const keys = s.spots.map((sp) => sp.latlng.join(','))
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+
+  it('deux amas éloignés -> deux spots ordonnés par fréquentation', () => {
+    const mk = (id, ll, city) => ({
+      id, type: 'Run', distance: 5000, total_elevation_gain: 0, moving_time: 1800,
+      start_date_local: `2026-01-${String(id).padStart(2, '0')}T08:00:00Z`,
+      start_latlng: ll, location_city: city,
+      routePoints: [[ll[0], ll[1]], [ll[0] + 0.01, ll[1] + 0.01]],
+    })
+    const A = [47.0, 11.0], B = [48.6, 12.6] // ~200 km d'écart -> amas bien distincts
+    const list = [mk(1, A, 'Alpha'), mk(2, A, 'Alpha'), mk(3, A, 'Alpha'), mk(4, B, 'Beta'), mk(5, B, 'Beta')]
+    const s = aggregate(list, null, null)
+    expect(s.spots.length).toBe(2)
+    expect(s.spots[0].count).toBe(3)
+    expect(s.spots[0].city).toBe('Alpha')
+    expect(s.spots[1].count).toBe(2)
+    expect(s.spots[0].route).toHaveLength(2)
+  })
+
+  it('aucune donnée GPS -> pas de spot', () => {
+    const noGps = [{ id: 1, type: 'Run', distance: 5000, moving_time: 1800, start_date_local: '2026-01-01T08:00:00Z' }]
+    const s = aggregate(noGps, null, null)
+    expect(s.spots).toEqual([])
+    expect(s.favoriteSpot).toBe(null)
+    expect(s.heroRoute).toBe(null)
+  })
+
+  it('liste vide -> pas de spot', () => {
+    const s = aggregate([], null, null)
+    expect(s.spots).toEqual([])
+    expect(s.favoriteSpot).toBe(null)
+  })
+})

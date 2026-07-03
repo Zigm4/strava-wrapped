@@ -13,7 +13,7 @@ import { usePeriod } from '../hooks/usePeriod.js'
 import { useFamilyFilter } from '../hooks/useFamilyFilter.js'
 import { useCardOptions } from '../hooks/useCardOptions.js'
 import { useComparison } from '../hooks/useComparison.js'
-import { useSpot } from '../hooks/useSpot.js'
+import { useSpots } from '../hooks/useSpots.js'
 import { useCardExport } from '../hooks/useCardExport.js'
 
 const canShare = typeof navigator !== 'undefined' && !!navigator.share && !!navigator.canShare
@@ -42,7 +42,16 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
   })
 
   const exp = useCardExport({ formatId: opt.formatId, periodLabel: per.periodLabel })
-  const spot = useSpot(summary, { isDemo, capturing: exp.capturing })
+  const sp = useSpots(summary, { isDemo, capturing: exp.capturing })
+  const spot = sp.spot
+
+  // Le spot choisi pilote la mini-carte : heroRoute = le tracé de CE spot (ou null s'il n'a
+  // pas de trace GPS -> la carte laisse place au repli, jamais le tracé d'un autre spot).
+  // Cas par défaut (spot #0) : sp.spot.route === summary.heroRoute -> identique à avant.
+  const cardSummary = useMemo(
+    () => (sp.spot ? { ...summary, heroRoute: sp.spot.route } : summary),
+    [summary, sp.spot?.route],
+  )
 
   const defaultTitle = athleteName || (per.period === 'year' ? 'Mon année' : 'Mon mois')
   const resolvedTitle = opt.title.trim() || defaultTitle
@@ -72,7 +81,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
     let url
     try {
       const snap = buildSnapshot({
-        summary, formatId: opt.formatId, bgId: opt.bgId, accentId: opt.accentId, theme: opt.theme, scrim: opt.scrim,
+        summary: cardSummary, formatId: opt.formatId, bgId: opt.bgId, accentId: opt.accentId, theme: opt.theme, scrim: opt.scrim,
         periodLabel: per.periodLabel, title: resolvedTitle, handle: opt.handle.trim(), privacy: opt.privacy,
         spot, comparison: cmp.comparison, showDeltas: cmp.deltaActive, typeCompare: cmp.typeCompare, showHeatmap: opt.showHeatmap, heatmap,
       })
@@ -113,6 +122,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
         theme={opt.theme} onTheme={opt.setTheme}
         privacy={opt.privacy} onPrivacy={opt.setPrivacy}
         showHeatmap={opt.showHeatmap} onHeatmap={opt.setShowHeatmap}
+        spotChips={sp.chips} spotIndex={sp.index} onSpotSelect={sp.setIndex} spotCount={sp.count}
         photo={opt.photo} onPhoto={opt.choosePhoto} onClearPhoto={opt.clearPhoto}
         scrim={opt.scrim} onScrim={opt.setScrim}
         onExport={exp.handleExport} exporting={exp.exporting} onShare={exp.handleShare} canShare={canShare}
@@ -141,7 +151,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
           ) : (
             <StoryCard
               ref={exp.cardRef}
-              summary={summary}
+              summary={cardSummary}
               formatId={opt.formatId}
               background={opt.background}
               photo={opt.photo}
