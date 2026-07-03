@@ -8,8 +8,8 @@ export default function RouteMap({ route, size, accentFrom = '#fc4c02', accentTo
 
   const start = norm[0]
   const end = norm[norm.length - 1]
-  const sw = Math.max(4, size * 0.026)
-  const dot = Math.max(5, size * 0.04)
+  const sw = Math.max(3, size * 0.018)
+  const dot = Math.max(4, size * 0.032)
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block' }}>

@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { Download, Upload, X, CalendarRange, Layers, Palette, Filter, Type, Share2, Copy, Link as LinkIcon, Sparkles, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
+import { Download, Upload, X, CalendarRange, Layers, Palette, Filter, Type, Share2, Copy, Link as LinkIcon, PlayCircle, Sparkles, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
 import { FamilyIcon } from './icons.jsx'
 import { FAMILIES } from '../lib/activityTypes.js'
 import { FORMATS, FORMAT_ORDER } from '../data/formats.js'
@@ -21,7 +21,7 @@ export default function Controls({
   photo, onPhoto, onClearPhoto,
   scrim, onScrim,
   onExport, exporting, onShare, canShare,
-  onCopy, canCopy, onShareLink,
+  onCopy, canCopy, onShareLink, onPlayRecap,
 }) {
   const fileRef = useRef(null)
 
@@ -205,6 +205,13 @@ export default function Controls({
       {onShareLink && (
         <button className="btn btn-ghost" style={{ width: '100%', marginTop: 10 }} onClick={onShareLink} title="Créer un lien interactif à partager">
           <LinkIcon size={17} /> Créer mon lien
+        </button>
+      )}
+
+      {onPlayRecap && (
+        <button className="btn recap-launch" onClick={onPlayRecap}>
+          <PlayCircle size={20} /> Voir mon Rewind
+          <span className="recap-launch-sub">récap animé + vidéo, avec tes réglages</span>
         </button>
       )}
     </div>

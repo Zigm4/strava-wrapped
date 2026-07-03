@@ -49,6 +49,17 @@ export function fmtSpeed(speedMs) {
   return nf1.format(speedMs * 3.6)
 }
 
+// Affichage d'une comparaison : au-delà de +400 % (on repart de quasi zéro), le pourcentage
+// n'a plus de sens -> on montre un multiplicateur "×N,N" bien plus parlant.
+export function fmtCompare(cmp) {
+  if (!cmp || !Number.isFinite(cmp.pct)) return null
+  if (cmp.prev > 0 && cmp.pct >= 400) {
+    const m = cmp.cur / cmp.prev
+    return `×${nf1.format(m)}`
+  }
+  return `${cmp.pct >= 0 ? '+' : ''}${nf0.format(cmp.pct)} %`
+}
+
 const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre']
 const MOIS_COURT = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.']
 

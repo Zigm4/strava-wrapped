@@ -29,7 +29,8 @@ export const BACKGROUNDS = [
     css: 'linear-gradient(160deg, #fbfbf7 0%, #ece9e1 100%)' },
 ]
 
-export const DEFAULT_BG = BACKGROUNDS[0]
+// Défaut : fond bleu (Ocean) — contraste franc avec l'accent violet par défaut.
+export const DEFAULT_BG = BACKGROUNDS.find((b) => b.id === 'ocean') || BACKGROUNDS[0]
 
 // Palettes d'accent (dégradé from -> to) appliquées à la barre, aux records, au tracé.
 export const ACCENTS = [
@@ -38,8 +39,18 @@ export const ACCENTS = [
   { id: 'violet', name: 'Violet', from: '#7a5cff', to: '#ff2d6f' },
   { id: 'cyan', name: 'Cyan', from: '#00d4ff', to: '#5b8cff' },
   { id: 'lime', name: 'Citron', from: '#a3e635', to: '#16a34a' },
-  { id: 'mint', name: 'Menthe', from: '#2dd4bf', to: '#3b82f6' },
+  { id: 'mint', name: 'Menthe', from: '#2dd4bf', to: '#10b981' },
   { id: 'mono', name: 'Mono', from: '#ffffff', to: '#b9b9c6' },
 ]
 
-export const DEFAULT_ACCENT = ACCENTS[0]
+// Défaut : accent violet (distinct du fond bleu).
+export const DEFAULT_ACCENT = ACCENTS.find((a) => a.id === 'violet') || ACCENTS[0]
+
+// Couleurs (hex) d'un fond, extraites de sa chaîne CSS, pour un rendu canvas (vidéo).
+// On récupère les stops de couleur dans l'ordre ; sert à reconstruire un dégradé équivalent.
+export function bgCanvasColors(css) {
+  if (!css) return ['#1b1f3b', '#05060f']
+  const hexes = css.match(/#[0-9a-fA-F]{6}/g) || []
+  const uniq = [...new Set(hexes)]
+  return uniq.length ? uniq : ['#1b1f3b', '#05060f']
+}

@@ -8,7 +8,7 @@ import { FamilyIcon } from './icons.jsx'
 import { FAMILIES } from '../lib/activityTypes.js'
 import { trimRoute } from '../lib/polyline.js'
 import { FORMATS } from '../data/formats.js'
-import { fmtKm, fmtElev, fmtHours, fmtInt, fmtPace, fmtSpeed, fmtDuration } from '../lib/format.js'
+import { fmtKm, fmtElev, fmtHours, fmtInt, fmtPace, fmtSpeed, fmtDuration, fmtCompare } from '../lib/format.js'
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.04 } } }
 const item = {
@@ -34,7 +34,7 @@ function buildHighlights(summary, comparison, max) {
   const out = []
   if (comparison) {
     const up = comparison.pct >= 0
-    out.push({ icon: up ? TrendingUp : TrendingDown, text: `${up ? '+' : ''}${comparison.pct}% vs ${comparison.label}` })
+    out.push({ icon: up ? TrendingUp : TrendingDown, text: `${fmtCompare(comparison)} vs ${comparison.label}` })
   }
   if (summary.dayPart && DAY_PART[summary.dayPart]) out.push({ icon: DAY_PART[summary.dayPart].icon, text: DAY_PART[summary.dayPart].label })
   if (summary.weekendShare != null) out.push({ icon: CalendarDays, text: `${Math.round(summary.weekendShare * 100)}% le week-end` })

@@ -3,11 +3,14 @@ import { toPng } from 'html-to-image'
 import Controls from './Controls.jsx'
 import StoryCard from './StoryCard.jsx'
 import PosterCard from './PosterCard.jsx'
+import RecapPlayer from './RecapPlayer.jsx'
+import { buildRecap } from '../lib/recap.js'
 import { aggregate, availableFamilies, personalBestIds } from '../lib/aggregate.js'
 import { familyKey, FAMILIES } from '../lib/activityTypes.js'
 import { reverseGeocode } from '../lib/geocode.js'
 import { monthShort, monthLabel } from '../lib/format.js'
 import { buildSnapshot, shareUrl } from '../lib/share.js'
+import { saveOrShare } from '../lib/save.js'
 import { localYear, localMonth, localParts, localTime } from '../lib/date.js'
 import { monthHeatmap, yearHeatmap } from '../lib/heatmap.js'
 import { FORMATS, isPoster } from '../data/formats.js'
@@ -90,6 +93,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
   const [compareMode, setCompareMode] = useState('off') // 'off' | 'prev' | 'yoy'
   const [exporting, setExporting] = useState(false)
   const [capturing, setCapturing] = useState(false) // fige les animations le temps du rendu PNG
+  const [showRecap, setShowRecap] = useState(false) // lecteur vidéo plein écran
   const [toast, setToast] = useState(null)
 
   const background = BACKGROUNDS.find((b) => b.id === bgId) || DEFAULT_BG
@@ -186,7 +190,8 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
     const sum = (arr) => arr.filter(keep).reduce((s, a) => s + (a.distance || 0), 0)
     const cur = sum(periodActivities), prev = sum(ref.prevActs)
     if (prev <= 0 || cur <= 0) return null
-    return { pct: Math.round(((cur - prev) / prev) * 100), label: ref.label }
+    // cur/prev (mètres) exposés pour afficher un multiplicateur quand le % explose (repart de ~0)
+    return { pct: Math.round(((cur - prev) / prev) * 100), label: ref.label, cur, prev }
   }, [referencePeriod, refMode, periodActivities, allActive, selected])
 
   // écart de distance par type de sport vs la période de référence (union des sports, filtre respecté)
@@ -226,6 +231,15 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
     const daily = summary.dailyDistance || {}
     return period === 'year' ? yearHeatmap(year, daily) : monthHeatmap(month.year, month.month, daily)
   }, [period, year, month, summary])
+
+  // slides du récap vidéo (façon story animée)
+  const recapSlides = useMemo(
+    () => buildRecap(summary, {
+      period, year, month: month.month, periodLabel, athleteName, privacy,
+      comparison, typeCompare, compareMode, heatmap, activities: filteredActivities,
+    }),
+    [summary, period, year, month, periodLabel, athleteName, privacy, comparison, typeCompare, compareMode, heatmap, filteredActivities],
+  )
 
   function resetFilters() { setAllActive(true); setSelected(new Set()) }
   function selectMonth(m) { setMonth(m); resetFilters() }
@@ -286,7 +300,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
       setCapturing(false)
     }
   }
-  const fileSlug = () => `strava-${periodLabel.replace(/\s+/g, '-').toLowerCase()}`
+  const fileSlug = () => `rewind-${periodLabel.replace(/\s+/g, '-').toLowerCase()}`
 
   async function handleExport() {
     if (!cardRef.current) return
@@ -294,11 +308,10 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
     try {
       // le poster s'exporte en très haute résolution (proche A3 @ 300 dpi) pour l'impression
       const dataUrl = await renderPng(isPoster(formatId) ? 3 : 2.5)
-      const link = document.createElement('a')
-      link.download = `${fileSlug()}.png`
-      link.href = dataUrl
-      link.click()
-      setToast({ type: 'ok', msg: 'Image téléchargée 🎉' })
+      const blob = await (await fetch(dataUrl)).blob()
+      // mobile -> partage natif ; PC -> téléchargement
+      const res = await saveOrShare(blob, `${fileSlug()}.png`, { title: 'Mon Rewind' })
+      setToast({ type: 'ok', msg: res === 'shared' ? 'Image partagée 🎉' : res === 'aborted' ? 'Partage annulé' : 'Image téléchargée 🎉' })
     } catch (err) {
       console.error(err)
       setToast({ type: 'err', msg: "L'export a échoué. Réessaie." })
@@ -404,6 +417,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
         onExport={handleExport} exporting={exporting} onShare={handleShare} canShare={canShare}
         onCopy={handleCopy} canCopy={canCopy}
         onShareLink={handleShareLink}
+        onPlayRecap={recapSlides.length > 1 ? () => setShowRecap(true) : null}
       />
 
       <div className="stage-wrap" ref={wrapRef}>
@@ -450,6 +464,18 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
       </div>
 
       {toast && <div className="toast">{toast.type === 'ok' ? '✅' : '⚠️'} {toast.msg}</div>}
+
+      {showRecap && (
+        <RecapPlayer
+          slides={recapSlides}
+          acc={accent}
+          theme={theme}
+          background={background}
+          photo={photo}
+          periodLabel={periodLabel}
+          onClose={() => setShowRecap(false)}
+        />
+      )}
     </div>
   )
 }
