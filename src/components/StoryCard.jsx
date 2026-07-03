@@ -1,6 +1,6 @@
 import { forwardRef, useRef, useState, useLayoutEffect } from 'react'
 import { motion } from 'framer-motion'
-import { MapPin, Mountain, Timer, Gauge, CalendarDays, Route, Award, TrendingUp, TrendingDown, Sunrise, Sun, Sunset, Moon, Flame } from 'lucide-react'
+import { MapPin, Mountain, Timer, CalendarDays, Award } from 'lucide-react'
 import AnimatedNumber from './AnimatedNumber.jsx'
 import RouteMap from './RouteMap.jsx'
 import Heatmap from './Heatmap.jsx'
@@ -8,65 +8,13 @@ import { FamilyIcon } from './icons.jsx'
 import { FAMILIES } from '../lib/activityTypes.js'
 import { trimRoute } from '../lib/polyline.js'
 import { FORMATS } from '../data/formats.js'
-import { fmtKm, fmtElev, fmtHours, fmtInt, fmtPace, fmtSpeed, fmtDuration, fmtCompare } from '../lib/format.js'
+import { fmtKm, fmtElev, fmtHours, fmtInt, fmtPace, fmtSpeed, fmtDuration } from '../lib/format.js'
+import { DENSITY, buildHighlights, buildRecords, deltaText, deltaElevText } from '../lib/cardContent.js'
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.04 } } }
 const item = {
   hidden: { opacity: 0, y: 22 },
   show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
-}
-
-const DENSITY = {
-  story: { types: 4, records: 4, races: 3, highlights: 3, showTypes: true, showRecords: true, showMap: true, mapH: 280 },
-  portrait: { types: 3, records: 0, races: 1, highlights: 0, showTypes: true, showRecords: false, showMap: true, mapH: 176 },
-  square: { types: 3, records: 0, races: 0, highlights: 0, showTypes: true, showRecords: false, showMap: false, mapH: 0 },
-}
-
-const DAY_PART = {
-  matin: { icon: Sunrise, label: 'Plutôt le matin' },
-  midi: { icon: Sun, label: 'Plutôt le midi' },
-  'après-midi': { icon: Sun, label: "Plutôt l'après-midi" },
-  soir: { icon: Sunset, label: 'Plutôt le soir' },
-  nuit: { icon: Moon, label: 'Plutôt la nuit' },
-}
-
-function buildHighlights(summary, comparison, max) {
-  const out = []
-  if (comparison) {
-    const up = comparison.pct >= 0
-    out.push({ icon: up ? TrendingUp : TrendingDown, text: `${fmtCompare(comparison)} vs ${comparison.label}` })
-  }
-  if (summary.dayPart && DAY_PART[summary.dayPart]) out.push({ icon: DAY_PART[summary.dayPart].icon, text: DAY_PART[summary.dayPart].label })
-  if (summary.weekendShare != null) out.push({ icon: CalendarDays, text: `${Math.round(summary.weekendShare * 100)}% le week-end` })
-  if (summary.streak >= 3) out.push({ icon: Flame, text: `Série de ${summary.streak} j` })
-  return out.slice(0, max)
-}
-
-function buildRecords(summary, max) {
-  const r = summary.records
-  const out = []
-  if (r.longest) out.push({ icon: Route, label: 'Plus longue sortie', value: `${fmtKm(r.longest.distance)}`, unit: 'km' })
-  if (r.biggestClimb && r.biggestClimb.elevation > 50)
-    out.push({ icon: Mountain, label: 'Plus grosse montée', value: `${fmtElev(r.biggestClimb.elevation)}`, unit: 'm D+' })
-  const dom = summary.dominantFamily
-  if (dom === 'ride' && r.bestRide) out.push({ icon: Gauge, label: 'Meilleure vitesse', value: fmtSpeed(r.bestRide.speed), unit: 'km/h' })
-  else if (r.bestRun) out.push({ icon: Gauge, label: 'Meilleure allure', value: fmtPace(r.bestRun.speed), unit: '/km' })
-  else if (r.bestRide) out.push({ icon: Gauge, label: 'Meilleure vitesse', value: fmtSpeed(r.bestRide.speed), unit: 'km/h' })
-  if (r.longestTime) out.push({ icon: Timer, label: 'Plus longue durée', value: fmtDuration(r.longestTime.time), unit: '' })
-  if (r.topDay) out.push({ icon: CalendarDays, label: `Top jour · ${r.topDay.day}`, value: `${fmtKm(r.topDay.distance)}`, unit: 'km' })
-  return out.slice(0, max)
-}
-
-// écart de distance (metres) : "▲ +12,3 km" / "▼ -5,0 km" / "≈ 0 km"
-function deltaText(d) {
-  if (Math.abs(d) < 100) return '≈ 0 km'
-  return `${d > 0 ? '▲ +' : '▼ -'}${fmtKm(Math.abs(d))} km`
-}
-
-// écart de dénivelé positif : "▲ +340 m D+" / "▼ -120 m D+" / "≈ 0 m D+"
-function deltaElevText(d) {
-  if (Math.abs(d) < 10) return '≈ 0 m D+'
-  return `${d > 0 ? '▲ +' : '▼ -'}${fmtElev(Math.abs(d))} m D+`
 }
 
 const StoryCard = forwardRef(function StoryCard(
