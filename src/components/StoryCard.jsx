@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, useRef, useState, useLayoutEffect } from 'react'
 import { motion } from 'framer-motion'
 import { MapPin, Mountain, Timer, Gauge, CalendarDays, Route, Award, TrendingUp, TrendingDown, Sunrise, Sun, Sunset, Moon, Flame } from 'lucide-react'
 import AnimatedNumber from './AnimatedNumber.jsx'
@@ -18,7 +18,7 @@ const item = {
 
 const DENSITY = {
   story: { types: 4, records: 4, races: 3, highlights: 3, showTypes: true, showRecords: true, showMap: true, mapH: 280 },
-  portrait: { types: 3, records: 0, races: 2, highlights: 2, showTypes: true, showRecords: false, showMap: true, mapH: 220 },
+  portrait: { types: 3, records: 0, races: 1, highlights: 0, showTypes: true, showRecords: false, showMap: true, mapH: 176 },
   square: { types: 3, records: 0, races: 0, highlights: 0, showTypes: true, showRecords: false, showMap: false, mapH: 0 },
 }
 
@@ -79,6 +79,26 @@ const StoryCard = forwardRef(function StoryCard(
   const scrimVal = scrim != null ? scrim : photo ? 0.7 : background?.scrim ?? 0.5
   const acc = accent || { from: '#fc4c02', to: '#ff2d6f' }
 
+  // Ajustement d'échelle : si le contenu dépasse le canevas (formats courts Post/Carré),
+  // on le réduit juste ce qu'il faut pour qu'AUCUN bloc ne soit rogné par la bordure.
+  // Garantie universelle, quel que soit le format ou la quantité de données.
+  const bodyRef = useRef(null)
+  const [fit, setFit] = useState(1)
+  useLayoutEffect(() => {
+    const el = bodyRef.current
+    if (!el) return
+    const measure = () => {
+      const avail = el.clientHeight
+      const need = el.scrollHeight
+      setFit(need > avail + 2 ? Math.max(0.6, avail / need) : 1)
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formatId, summary, showDeltas, showHeatmap, spot, privacy, comparison, typeCompare])
+
   const rootStyle = {
     width: fmt.w,
     height: fmt.h,
@@ -138,7 +158,7 @@ const StoryCard = forwardRef(function StoryCard(
           <div className="month">{periodLabel}</div>
         </motion.div>
 
-        <div className="c-body">
+        <div className="c-body" ref={bodyRef} style={fit < 1 ? { transform: `scale(${fit})`, transformOrigin: 'top center' } : undefined}>
         {/* hero */}
         <motion.div className="hero" variants={item}>
           <div className="label">Distance parcourue</div>
@@ -303,7 +323,7 @@ const StoryCard = forwardRef(function StoryCard(
                 <div className="s-name">{spot ? spot.name : `${summary.streak} jours`}</div>
               </div>
             </div>
-            <div className="powered">Propulsé par <b>Strava</b><br />{handle || 'wrapped'}</div>
+            <div className="powered">Propulsé par <b>Strava</b><br />{handle || 'rewind'}</div>
           </motion.div>
         )}
         </div>

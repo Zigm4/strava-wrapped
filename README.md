@@ -1,6 +1,6 @@
-# Strava Wrapped
+# Rewind
 
-Turn a month or a full year of your Strava activities into a beautiful, shareable image, ready to post as an Instagram story. Think "Spotify Wrapped", but for your runs, rides, hikes and more.
+Turn a month or a full year of your Strava activities into a beautiful, shareable image, ready to post as an Instagram story. A recap for your runs, rides, hikes and more.
 
 100% client-side. No backend, no database, nothing stored on a server. Try it instantly with the built-in demo, no account needed.
 
@@ -83,6 +83,6 @@ Vite, React, Framer Motion, html-to-image and lucide-react. Self-hosted fonts (S
 
 ## License and attribution
 
-Released under the MIT License (see [LICENSE](LICENSE)). You are free to fork, modify and reuse it, including commercially. In return, please keep a visible credit to the original project, "Strava Wrapped" by Jimmy Marchetto, with a link back to this repository.
+Released under the MIT License (see [LICENSE](LICENSE)). You are free to fork, modify and reuse it, including commercially. In return, please keep a visible credit to the original project, "Rewind" by Jimmy Marchetto, with a link back to this repository.
 
 This project is not affiliated with Strava. "Powered by Strava" per their brand guidelines.

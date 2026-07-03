@@ -34,8 +34,14 @@ export default function Heatmap({ data, accent = '#fc4c02' }) {
     })
   })
 
+  // Année : grille large (53 col.) qui remplit la largeur. Mois : seulement 7 colonnes,
+  // donc on borne la largeur pour garder des carrés fins et élégants (sinon ils s'étirent).
+  const svgStyle = isYear
+    ? { display: 'block', width: '100%', color: '#fff' }
+    : { display: 'block', width: 360, maxWidth: '100%', color: '#fff' }
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', color: '#fff' }} preserveAspectRatio="xMidYMid meet">
+    <svg viewBox={`0 0 ${W} ${H}`} style={svgStyle} preserveAspectRatio="xMidYMid meet">
       {rects}
     </svg>
   )

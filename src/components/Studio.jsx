@@ -363,7 +363,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
       await navigator.clipboard.writeText(url)
       setToast({ type: 'ok', msg: 'Lien copié 🔗 colle-le où tu veux' })
     } catch {
-      window.prompt('Copie ton lien Wrapped :', url)
+      window.prompt('Copie ton lien Rewind :', url)
     }
   }
 

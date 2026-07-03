@@ -30,7 +30,7 @@ export default function SharedView({ snapshot, onCreate }) {
   if (!props) {
     return (
       <div className="shared shared-empty">
-        <p>Ce lien Wrapped est illisible ou corrompu.</p>
+        <p>Ce lien Rewind est illisible ou corrompu.</p>
         <button className="btn btn-strava" onClick={onCreate}>Créer le mien</button>
       </div>
     )
@@ -44,7 +44,7 @@ export default function SharedView({ snapshot, onCreate }) {
         </div>
       </div>
       <div className="shared-cta">
-        <div className="shared-tagline">Créée avec <b>Strava Wrapped</b> · 100% dans le navigateur</div>
+        <div className="shared-tagline">Créée avec <b>Rewind</b> · 100% dans le navigateur</div>
         <button className="btn btn-strava" onClick={onCreate}>Crée le tien →</button>
       </div>
     </div>

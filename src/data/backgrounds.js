@@ -20,8 +20,6 @@ export const BACKGROUNDS = [
     css: 'radial-gradient(110% 100% at 20% 0%, #ff6a88 0%, transparent 55%), linear-gradient(160deg, #b5179e 0%, #560bad 100%)' },
   { id: 'carbon', name: 'Carbon', scrim: 0.4,
     css: 'radial-gradient(120% 120% at 50% -10%, #2a2a35 0%, #0c0c12 60%)' },
-  { id: 'strava', name: 'Strava', scrim: 0.4,
-    css: 'linear-gradient(160deg, #fc4c02 0%, #e63900 55%, #7a1d00 100%)' },
   // --- thème clair ---
   { id: 'paper', name: 'Paper', scrim: 0.18, light: true,
     css: 'radial-gradient(120% 110% at 80% 0%, #ffe9d6 0%, transparent 55%), linear-gradient(160deg, #fef6ee 0%, #f3e7da 100%)' },
@@ -40,6 +38,7 @@ export const ACCENTS = [
   { id: 'violet', name: 'Violet', from: '#7a5cff', to: '#ff2d6f' },
   { id: 'cyan', name: 'Cyan', from: '#00d4ff', to: '#5b8cff' },
   { id: 'lime', name: 'Citron', from: '#a3e635', to: '#16a34a' },
+  { id: 'mint', name: 'Menthe', from: '#2dd4bf', to: '#3b82f6' },
   { id: 'mono', name: 'Mono', from: '#ffffff', to: '#b9b9c6' },
 ]
 
