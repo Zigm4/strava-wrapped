@@ -43,19 +43,23 @@ export function useSpots(summary, { isDemo, capturing }) {
 
   const safeIndex = Math.min(index, Math.max(0, spots.length - 1))
 
-  // nom de lieu d'un spot : démo -> ville intégrée ; réel -> géocodage (avec repli).
-  // pendant une capture PNG on n'écrit jamais le placeholder "Localisation…" dans l'image.
-  const placeName = (i, fallback) => {
+  // ville géocodée d'un spot (sans le placeholder "Localisation…") -> sert la sous-ligne.
+  const cityOf = (i) => {
     const fs = spots[i]
-    if (isDemo) return fs.city || fallback
-    const g = geos[i]
-    if (g === undefined && !capturing) return 'Localisation…'
-    return g?.city || fs.city || fallback
+    return (isDemo ? fs.city : (geos[i]?.city || fs.city)) || null
   }
-  const regionOf = (i) => {
+  const regionPartsOf = (i) => {
     const fs = spots[i]
-    const parts = isDemo ? [fs.state, fs.country] : [geos[i]?.region, geos[i]?.country]
-    return parts.filter(Boolean).join(' · ') || null
+    return (isDemo ? [fs.state, fs.country] : [geos[i]?.region, geos[i]?.country]).filter(Boolean)
+  }
+  // TITRE affiché d'un spot : titre de la sortie si le spot n'a qu'une activité (plus parlant),
+  // sinon la ville. Pendant une capture PNG on n'écrit jamais "Localisation…" dans l'image.
+  const headlineOf = (i, fallback) => {
+    const fs = spots[i]
+    if (fs.title) return fs.title
+    if (isDemo) return cityOf(i) || fallback
+    if (geos[i] === undefined && !capturing) return 'Localisation…'
+    return cityOf(i) || fallback
   }
 
   // dépend UNIQUEMENT du géocodage du spot sélectionné : la résolution d'un AUTRE spot
@@ -64,9 +68,13 @@ export function useSpots(summary, { isDemo, capturing }) {
   const spot = useMemo(() => {
     if (!spots.length) return null
     const fs = spots[safeIndex]
+    // spot à une seule sortie : le titre est en tête -> on remet le lieu (ville · région) en sous-ligne
+    const region = fs.title
+      ? [cityOf(safeIndex), ...regionPartsOf(safeIndex)].filter(Boolean).join(' · ') || null
+      : regionPartsOf(safeIndex).join(' · ') || null
     return {
-      name: placeName(safeIndex, 'Ton terrain de jeu'),
-      region: regionOf(safeIndex),
+      name: headlineOf(safeIndex, 'Ton terrain de jeu'),
+      region,
       count: fs.count,
       distance: fs.distance,
       elevation: fs.elevation,
@@ -77,7 +85,7 @@ export function useSpots(summary, { isDemo, capturing }) {
   }, [spots, safeIndex, selGeo, isDemo, capturing])
 
   const chips = useMemo(() => spots.map((s, i) => ({
-    label: placeName(i, `Spot ${i + 1}`),
+    label: headlineOf(i, `Spot ${i + 1}`),
     sub: `${s.count} sortie${s.count > 1 ? 's' : ''} · ${fmtKm(s.distance, { decimals: 0 })} km`,
     type: s.topType,
   })),

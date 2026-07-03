@@ -173,6 +173,20 @@ describe('spots favoris (multi-spots)', () => {
     expect(s.spots[0].city).toBe('Alpha')
     expect(s.spots[1].count).toBe(2)
     expect(s.spots[0].route).toHaveLength(2)
+    expect(s.spots[0].title).toBe(null) // plusieurs sorties -> pas de titre
+  })
+
+  it('spot à une seule sortie -> title = nom de la sortie', () => {
+    const one = [{
+      id: 1, type: 'Run', distance: 8000, total_elevation_gain: 100, moving_time: 2400,
+      start_date_local: '2026-01-05T08:00:00Z', start_latlng: [47.0, 11.0],
+      location_city: 'Innsbruck', name: 'Sommet Nordkette',
+      routePoints: [[47.0, 11.0], [47.01, 11.01]],
+    }]
+    const s = aggregate(one, null, null)
+    expect(s.spots).toHaveLength(1)
+    expect(s.spots[0].count).toBe(1)
+    expect(s.spots[0].title).toBe('Sommet Nordkette')
   })
 
   it('aucune donnée GPS -> pas de spot', () => {

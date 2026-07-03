@@ -255,7 +255,7 @@ const StoryCard = forwardRef(function StoryCard(
               ) : null}
               {spot ? (
                 <div className="map-sub">
-                  {spot.count} sorties · {fmtKm(spot.distance)} km
+                  {spot.count} sortie{spot.count > 1 ? 's' : ''} · {fmtKm(spot.distance)} km
                   {spot.elevation > 200 ? ` · ${fmtElev(spot.elevation)} m D+` : ''}
                 </div>
               ) : null}

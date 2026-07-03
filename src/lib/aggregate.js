@@ -198,6 +198,8 @@ function describeSpot(spot) {
     country: rep?.location_country ?? mode(spot.acts.map((a) => a.location_country)),
     topType: mode(spot.acts.map((a) => familyKey(a.type))),
     route: rep ? rep.routePoints : null,
+    // spot d'une seule sortie -> son titre est plus parlant qu'un simple nom de ville
+    title: spot.acts.length === 1 ? (spot.acts[0].name || null) : null,
   }
 }
 
