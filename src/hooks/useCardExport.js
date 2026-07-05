@@ -1,7 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
 import { FORMATS, isPoster } from '../data/formats.js'
-import { saveOrShare } from '../lib/save.js'
+import { isMobile, saveOrShare } from '../lib/save.js'
+
+// Beaucoup de navigateurs mobiles plafonnent un <canvas> (~4096 px de côté) : au-delà,
+// toDataURL rend une image vide ou échoue -> l'export « échoue ». On borne le plus grand
+// côté en conséquence (marge sous 4096), généreux sur desktop.
+const MAX_CANVAS_SIDE = isMobile() ? 4000 : 8192
 
 // Machinerie d'export/preview de la carte : rendu PNG, partage/téléchargement/copie,
 // échelle du preview, toast, et l'état `capturing` (fige la carte le temps du rendu).
@@ -40,8 +45,21 @@ export function useCardExport({ formatId, periodLabel }) {
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
     try {
       if (document.fonts?.ready) await document.fonts.ready
-      await toPng(cardRef.current, { pixelRatio: 2, cacheBust: true }) // 1re passe : polices
-      return await toPng(cardRef.current, { pixelRatio, cacheBust: true })
+      const node = cardRef.current
+      // borne la résolution pour ne jamais dépasser la limite canvas du navigateur (mobile surtout)
+      const capped = Math.min(pixelRatio, MAX_CANVAS_SIDE / Math.max(fmt.w, fmt.h))
+      // 1re passe (best-effort) : inline les polices ; un échec ne doit pas tuer l'export
+      try { await toPng(node, { pixelRatio: 1, cacheBust: true }) } catch { /* noop */ }
+      // rendu final avec repli progressif : si le device refuse encore la taille, on retente plus petit
+      // (throw OU dataURL vide) plutôt que d'abandonner et d'afficher « réessaie ».
+      let lastErr = null
+      for (const pr of [capped, capped * 0.75, capped * 0.5, 1]) {
+        try {
+          const url = await toPng(node, { pixelRatio: pr, cacheBust: true })
+          if (url && url.length > 2000) return url // dataURL valide (pas un canvas vide)
+        } catch (e) { lastErr = e }
+      }
+      throw lastErr || new Error('png-export-vide')
     } finally {
       setCapturing(false)
     }
