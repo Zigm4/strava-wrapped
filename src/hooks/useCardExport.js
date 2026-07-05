@@ -8,6 +8,19 @@ import { isMobile, saveOrShare } from '../lib/save.js'
 // côté en conséquence (marge sous 4096), généreux sur desktop.
 const MAX_CANVAS_SIDE = isMobile() ? 4000 : 8192
 
+// data-URL -> Blob SANS fetch(). Indispensable : la CSP du site (connect-src) n'autorise pas
+// le schéma `data:`, donc `fetch(dataUrl)` est bloqué en prod -> l'export échouait sur mobile.
+// Ici on décode le base64 nous-mêmes, hors réseau, hors CSP.
+function dataUrlToBlob(dataUrl) {
+  const comma = dataUrl.indexOf(',')
+  const header = dataUrl.slice(0, comma)
+  const mime = header.match(/data:([^;]+)/)?.[1] || 'image/png'
+  const bin = atob(dataUrl.slice(comma + 1))
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return new Blob([bytes], { type: mime })
+}
+
 // Machinerie d'export/preview de la carte : rendu PNG, partage/téléchargement/copie,
 // échelle du preview, toast, et l'état `capturing` (fige la carte le temps du rendu).
 export function useCardExport({ formatId, periodLabel }) {
@@ -72,12 +85,12 @@ export function useCardExport({ formatId, periodLabel }) {
     try {
       // le poster s'exporte en très haute résolution (proche A3 @ 300 dpi) pour l'impression
       const dataUrl = await renderPng(isPoster(formatId) ? 3 : 2.5)
-      const blob = await (await fetch(dataUrl)).blob()
+      const blob = dataUrlToBlob(dataUrl)
       const res = await saveOrShare(blob, `${fileSlug()}.png`, { title: 'Mon Rewind' })
       setToast({ type: 'ok', msg: res === 'shared' ? 'Image partagée 🎉' : res === 'aborted' ? 'Partage annulé' : 'Image téléchargée 🎉' })
     } catch (err) {
       console.error(err)
-      setToast({ type: 'err', msg: "L'export a échoué. Réessaie." })
+      setToast({ type: 'err', msg: `L'export a échoué (${err?.name || 'erreur'}). Réessaie.` })
     } finally {
       setExporting(false)
     }
@@ -88,7 +101,7 @@ export function useCardExport({ formatId, periodLabel }) {
     setExporting(true)
     try {
       const dataUrl = await renderPng(2)
-      const blob = await (await fetch(dataUrl)).blob()
+      const blob = dataUrlToBlob(dataUrl)
       const file = new File([blob], `${fileSlug()}.png`, { type: 'image/png' })
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: 'Mon mois sur Strava' })
@@ -111,7 +124,7 @@ export function useCardExport({ formatId, periodLabel }) {
     setExporting(true)
     try {
       const dataUrl = await renderPng(2)
-      const blob = await (await fetch(dataUrl)).blob()
+      const blob = dataUrlToBlob(dataUrl)
       await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })])
       setToast({ type: 'ok', msg: 'Image copiée 📋' })
     } catch (err) {
