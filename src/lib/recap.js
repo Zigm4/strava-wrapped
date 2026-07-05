@@ -52,7 +52,9 @@ export function buildRecap(summary, ctx = {}) {
       .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
       .slice(0, 3)
       .map((r) => ({ label: r.label, color: r.color, delta: r.delta }))
-    slides.push({ kind: 'compare', pct: comparison.pct, label: comparison.label, cur: comparison.cur, prev: comparison.prev, rows })
+    // période en cours : le % est « à date » -> on l'indique dans le libellé pour rester honnête
+    const cmpLabel = comparison.inProgress ? `${comparison.label} (à date)` : comparison.label
+    slides.push({ kind: 'compare', pct: comparison.pct, label: cmpLabel, cur: comparison.cur, prev: comparison.prev, rows })
   }
 
   if (period === 'year' && year != null) {

@@ -83,8 +83,39 @@ export function referencePeriod({ activities, period, year, month, dataFloor }, 
   const beforeFloor = !!dataFloor &&
     (refYear < dataFloor.year || (refYear === dataFloor.year && refM < dataFloor.month))
 
-  const reason = currentIncomplete ? 'incomplete' : beforeFloor ? 'nohistory' : null
-  return { prevActs, label, partial: !!reason, reason }
+  // Période courante en cours + référence disponible -> comparaison « à date » : on tronque
+  // la référence au même avancement (même quantième du mois, ou même mois+jour pour l'année),
+  // pour un % honnête. On garde `prevActs` complet à part, pour l'objectif « écart à combler ».
+  const inProgress = currentIncomplete && !beforeFloor
+  let prevActsToDate = prevActs
+  let asOf = null
+  if (inProgress) {
+    const day = now.getDate()
+    if (period === 'year') {
+      const m = now.getMonth()
+      prevActsToDate = prevActs.filter((a) => {
+        const am = localMonth(a.start_date_local)
+        return am < m || (am === m && localParts(a.start_date_local).day <= day)
+      })
+      asOf = `${day} ${monthShort(m)}`
+    } else {
+      prevActsToDate = prevActs.filter((a) => localParts(a.start_date_local).day <= day)
+      asOf = `${day} ${monthShort(month.month)}`
+    }
+  }
+
+  // Blocage réel : uniquement quand la référence est hors de l'historique (rien à comparer).
+  const reason = beforeFloor ? 'nohistory' : null
+  return { prevActs, prevActsToDate, label, partial: !!reason, reason, inProgress, asOf }
+}
+
+// Objectif « écart à combler » : total de la période de référence COMPLÈTE vs le courant.
+// Renvoie { cur, target, remaining, pct } ou null si la référence est vide.
+export function computeProgress(periodActivities, refPrevActsFull, keep) {
+  const sum = (arr) => arr.filter(keep).reduce((s, a) => s + (a.distance || 0), 0)
+  const cur = sum(periodActivities), target = sum(refPrevActsFull)
+  if (target <= 0) return null
+  return { cur, target, remaining: Math.max(0, target - cur), pct: Math.min(1, cur / target) }
 }
 
 // Comparaison de distance globale (le "+X %"), filtre de familles respecté via `keep(activity)`.

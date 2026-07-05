@@ -12,7 +12,7 @@ export default function Controls({
   monthViewYear, onPrevYear, onNextYear, canPrevYear, canNextYear,
   years, selectedYear, onSelectYear,
   availFamilies, selectedFamilies, onToggleFamily, onAllFamilies, allActive,
-  compareMode, onCompareMode, deltaLabel, comparePartial, compareReason,
+  compareMode, onCompareMode, deltaLabel, comparePartial, compareReason, compareInProgress, compareAsOf,
   formatId, onFormat,
   title, onTitle, handle, onHandle,
   backgrounds, bgId, onBg,
@@ -40,6 +40,7 @@ export default function Controls({
         onAllFamilies={onAllFamilies} allActive={allActive}
         compareMode={compareMode} onCompareMode={onCompareMode} deltaLabel={deltaLabel}
         comparePartial={comparePartial} compareReason={compareReason}
+        compareInProgress={compareInProgress} compareAsOf={compareAsOf}
         period={period} selectedYear={selectedYear}
       />
       <FormatPanel formatId={formatId} onFormat={onFormat} />

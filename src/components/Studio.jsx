@@ -115,6 +115,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
         onAllFamilies={filter.resetFilters} allActive={filter.allActive}
         compareMode={opt.compareMode} onCompareMode={opt.setCompareMode} deltaLabel={cmp.typeCompare.label}
         comparePartial={opt.compareMode !== 'off' && cmp.typeCompare.partial} compareReason={cmp.typeCompare.reason}
+        compareInProgress={opt.compareMode !== 'off' && cmp.typeCompare.inProgress} compareAsOf={cmp.typeCompare.asOf}
         formatId={opt.formatId} onFormat={opt.setFormatId}
         title={opt.title} onTitle={opt.setTitle} handle={opt.handle} onHandle={opt.setHandle}
         backgrounds={BACKGROUNDS} bgId={opt.bgId} onBg={opt.chooseBg}

@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   buildMonthsForYear, mostRecentMonth, buildYears, periodActivitiesOf,
-  referencePeriod, computeComparison, computeTypeCompareRows,
+  referencePeriod, computeComparison, computeTypeCompareRows, computeProgress,
 } from './selectors.js'
 import { generateDemoActivities } from './demoData.js'
 import { familyKey } from './activityTypes.js'
+import { monthShort } from './format.js'
 
 const acts = generateDemoActivities()
 
@@ -79,5 +80,47 @@ describe('selectors — comparaison', () => {
     const cur = periodActivitiesOf(acts, 'year', 2025, null)
     const rows = computeTypeCompareRows(cur, [], (k) => k === 'run')
     expect(rows.every((r) => r.key === 'run')).toBe(true)
+  })
+})
+
+describe('selectors — comparaison « à date » (période en cours)', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('tronque la référence au même jour, ne bloque pas, et expose asOf', () => {
+    vi.setSystemTime(new Date(2026, 6, 12)) // 12 juillet 2026 = mois en cours
+    const cur = [
+      { start_date_local: '2026-07-03T08:00:00Z', type: 'Run', distance: 10000 },
+      { start_date_local: '2026-07-10T08:00:00Z', type: 'Run', distance: 10000 },
+    ]
+    const prevFull = [
+      { start_date_local: '2025-07-05T08:00:00Z', type: 'Run', distance: 10000 },
+      { start_date_local: '2025-07-20T08:00:00Z', type: 'Run', distance: 30000 }, // après le 12 -> hors « à date »
+    ]
+    const params = {
+      activities: [...cur, ...prevFull], period: 'month', year: 2026,
+      month: { year: 2026, month: 6 }, dataFloor: { year: 2021, month: 0 },
+    }
+    const ref = referencePeriod(params, 'yoy')
+    expect(ref.partial).toBe(false)
+    expect(ref.inProgress).toBe(true)
+    expect(ref.prevActs).toHaveLength(2)        // référence complète
+    expect(ref.prevActsToDate).toHaveLength(1)  // tronquée au 12
+    expect(ref.asOf).toBe(`12 ${monthShort(6)}`)
+    // % « à date » : 20 km courant vs 10 km référence-à-date -> +100 %
+    expect(computeComparison(cur, ref.prevActsToDate, () => true).pct).toBe(100)
+    // objectif « écart à combler » vs référence COMPLÈTE (40 km) : reste 20 km, 50 %
+    const prog = computeProgress(cur, ref.prevActs, () => true)
+    expect(prog.target).toBe(40000)
+    expect(prog.remaining).toBe(20000)
+    expect(prog.pct).toBeCloseTo(0.5, 5)
+  })
+
+  it('computeProgress plafonne à 100 % et remaining à 0 quand la cible est dépassée', () => {
+    const cur = [{ start_date_local: '2026-07-03T08:00:00Z', type: 'Run', distance: 50000 }]
+    const target = [{ start_date_local: '2025-07-03T08:00:00Z', type: 'Run', distance: 40000 }]
+    const prog = computeProgress(cur, target, () => true)
+    expect(prog.remaining).toBe(0)
+    expect(prog.pct).toBe(1)
+    expect(computeProgress(cur, [], () => true)).toBeNull() // référence vide -> pas d'objectif
   })
 })

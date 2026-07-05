@@ -6,9 +6,9 @@ import { fmtKm, fmtElev, fmtPace, fmtSpeed, fmtDuration, fmtCompare } from './fo
 
 // Densité de contenu par format (combien d'éléments, quels blocs).
 export const DENSITY = {
-  story: { types: 4, records: 4, races: 3, highlights: 3, showTypes: true, showRecords: true, showMap: true, mapH: 280 },
-  portrait: { types: 3, records: 0, races: 1, highlights: 0, showTypes: true, showRecords: false, showMap: true, mapH: 176 },
-  square: { types: 3, records: 0, races: 0, highlights: 0, showTypes: true, showRecords: false, showMap: false, mapH: 0 },
+  story: { types: 4, records: 4, races: 3, highlights: 3, showTypes: true, showRecords: true, showMap: true, mapH: 280, showGoal: true },
+  portrait: { types: 3, records: 0, races: 1, highlights: 0, showTypes: true, showRecords: false, showMap: true, mapH: 176, showGoal: true },
+  square: { types: 3, records: 0, races: 0, highlights: 0, showTypes: true, showRecords: false, showMap: false, mapH: 0, showGoal: false },
 }
 
 const DAY_PART = {
@@ -23,7 +23,8 @@ export function buildHighlights(summary, comparison, max) {
   const out = []
   if (comparison) {
     const up = comparison.pct >= 0
-    out.push({ icon: up ? TrendingUp : TrendingDown, text: `${fmtCompare(comparison)} vs ${comparison.label}` })
+    const suffix = comparison.inProgress ? ' (à date)' : ''
+    out.push({ icon: up ? TrendingUp : TrendingDown, text: `${fmtCompare(comparison)} vs ${comparison.label}${suffix}` })
   }
   if (summary.dayPart && DAY_PART[summary.dayPart]) out.push({ icon: DAY_PART[summary.dayPart].icon, text: DAY_PART[summary.dayPart].label })
   if (summary.weekendShare != null) out.push({ icon: CalendarDays, text: `${Math.round(summary.weekendShare * 100)}% le week-end` })

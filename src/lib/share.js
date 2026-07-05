@@ -48,7 +48,11 @@ export function buildSnapshot(p) {
     f: p.formatId, bg: p.bgId, ac: p.accentId, th: p.theme, sc: +(p.scrim ?? 0.5).toFixed(2),
     pl: p.periodLabel, ti: p.title, ha: p.handle, pv: p.privacy ? 1 : 0,
     sp: p.spot ? { name: p.spot.name, region: p.spot.region, type: p.spot.type, count: p.spot.count, distance: round(p.spot.distance), elevation: round(p.spot.elevation) } : null,
-    cmp: p.comparison ? { pct: p.comparison.pct, label: p.comparison.label } : null,
+    cmp: p.comparison ? {
+      pct: p.comparison.pct, label: p.comparison.label,
+      ip: p.comparison.inProgress ? 1 : 0, ao: p.comparison.asOf || null,
+      pr: p.comparison.progress ? { r: round(p.comparison.progress.remaining), p: +(p.comparison.progress.pct || 0).toFixed(3) } : null,
+    } : null,
     tc: p.showDeltas && p.typeCompare
       ? { label: p.typeCompare.label, rows: p.typeCompare.rows.map((r) => ({ key: r.key, label: r.label, color: r.color, current: round(r.current), previous: round(r.previous), delta: round(r.delta), deltaElev: round(r.deltaElev) })) }
       : null,
@@ -65,7 +69,12 @@ export function hydrateSnapshot(snap, backgrounds, accents) {
     summary,
     formatId: snap.f, background: bg, accent, theme: snap.th, scrim: snap.sc,
     periodLabel: snap.pl, title: snap.ti, handle: snap.ha, privacy: !!snap.pv,
-    spot: snap.sp, comparison: snap.cmp,
+    spot: snap.sp,
+    comparison: snap.cmp ? {
+      pct: snap.cmp.pct, label: snap.cmp.label,
+      inProgress: !!snap.cmp.ip, asOf: snap.cmp.ao || null,
+      progress: snap.cmp.pr ? { remaining: snap.cmp.pr.r, pct: snap.cmp.pr.p } : null,
+    } : null,
     showDeltas: !!snap.tc, typeCompare: snap.tc || { rows: [], label: '' },
     showHeatmap: false, heatmap: null,
   }

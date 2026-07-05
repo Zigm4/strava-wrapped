@@ -4,7 +4,7 @@ import { FAMILIES } from '../../lib/activityTypes.js'
 
 export default function FilterPanel({
   availFamilies, selectedFamilies, onToggleFamily, onAllFamilies, allActive,
-  compareMode, onCompareMode, deltaLabel, comparePartial, compareReason,
+  compareMode, onCompareMode, deltaLabel, comparePartial, compareReason, compareInProgress, compareAsOf,
   period, selectedYear,
 }) {
   return (
@@ -37,9 +37,12 @@ export default function FilterPanel({
       </div>
       {comparePartial && (
         <div className="helper">
-          {compareReason === 'incomplete'
-            ? 'Comparaison masquée : période en cours (incomplète).'
-            : `Pas d'historique avant ${deltaLabel} pour comparer (limite : 5 ans).`}
+          {`Pas d'historique avant ${deltaLabel} pour comparer (limite : 5 ans).`}
+        </div>
+      )}
+      {compareInProgress && !comparePartial && (
+        <div className="helper">
+          Période en cours : comparaison <b>à date</b>{compareAsOf ? ` (au ${compareAsOf})` : ''}, avec l'écart qui reste à combler sur la carte.
         </div>
       )}
     </div>

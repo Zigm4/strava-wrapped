@@ -118,6 +118,17 @@ const StoryCard = forwardRef(function StoryCard(
           <div className="label" style={{ fontSize: 26, marginTop: 8 }}>
             {fmtInt(summary.count)} sorties · {summary.activeDays} jours actifs
           </div>
+          {d.showGoal && comparison?.inProgress && comparison.progress && (
+            <div className="goal">
+              <div className="goal-bar"><div className="goal-fill" style={{ width: `${Math.round(comparison.progress.pct * 100)}%` }} /></div>
+              <div className="goal-lbl">
+                {comparison.progress.remaining > 100
+                  ? <>Encore <b>{fmtKm(comparison.progress.remaining)} km</b> pour égaler {comparison.label}</>
+                  : <>Objectif {comparison.label} atteint 🎉</>}
+                {comparison.asOf ? <span className="goal-asof"> · au {comparison.asOf}</span> : null}
+              </div>
+            </div>
+          )}
         </motion.div>
 
         {/* faits marquants */}
