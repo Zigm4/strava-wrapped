@@ -8,6 +8,10 @@ import { isMobile, saveOrShare } from '../lib/save.js'
 // côté en conséquence (marge sous 4096), généreux sur desktop.
 const MAX_CANVAS_SIDE = isMobile() ? 4000 : 8192
 
+// Résolution des exports « réseaux sociaux » : la carte fait déjà 1080×1920 (taille native
+// d'une story Instagram). 1,5× suffit largement et donne des fichiers ~3× plus légers que 2,5×.
+const IG_RATIO = 1.5
+
 // data-URL -> Blob SANS fetch(). Indispensable : la CSP du site (connect-src) n'autorise pas
 // le schéma `data:`, donc `fetch(dataUrl)` est bloqué en prod -> l'export échouait sur mobile.
 // Ici on décode le base64 nous-mêmes, hors réseau, hors CSP.
@@ -83,8 +87,8 @@ export function useCardExport({ formatId, periodLabel }) {
     if (!cardRef.current) return
     setExporting(true)
     try {
-      // le poster s'exporte en très haute résolution (proche A3 @ 300 dpi) pour l'impression
-      const dataUrl = await renderPng(isPoster(formatId) ? 3 : 2.5)
+      // le poster garde une haute résolution (impression) ; les formats réseaux -> IG_RATIO (léger)
+      const dataUrl = await renderPng(isPoster(formatId) ? 3 : IG_RATIO)
       const blob = dataUrlToBlob(dataUrl)
       const res = await saveOrShare(blob, `${fileSlug()}.png`, { title: 'Mon Rewind' })
       setToast({ type: 'ok', msg: res === 'shared' ? 'Image partagée 🎉' : res === 'aborted' ? 'Partage annulé' : 'Image téléchargée 🎉' })
@@ -100,7 +104,7 @@ export function useCardExport({ formatId, periodLabel }) {
     if (!cardRef.current) return
     setExporting(true)
     try {
-      const dataUrl = await renderPng(2)
+      const dataUrl = await renderPng(IG_RATIO)
       const blob = dataUrlToBlob(dataUrl)
       const file = new File([blob], `${fileSlug()}.png`, { type: 'image/png' })
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -123,7 +127,7 @@ export function useCardExport({ formatId, periodLabel }) {
     if (!cardRef.current) return
     setExporting(true)
     try {
-      const dataUrl = await renderPng(2)
+      const dataUrl = await renderPng(IG_RATIO)
       const blob = dataUrlToBlob(dataUrl)
       await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })])
       setToast({ type: 'ok', msg: 'Image copiée 📋' })

@@ -591,12 +591,13 @@ a { color: inherit; text-decoration: none; }
 .card.wk .wk-km { height: 30px; font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--ink); white-space: nowrap; }
 .card.wk .wk-track { width: 100%; height: 300px; display: flex; align-items: flex-end; justify-content: center; }
 .card.wk .wk-bar { width: 56px; max-width: 100%; border-radius: 16px 16px 6px 6px; background: linear-gradient(180deg, var(--acc-from), var(--acc-to)); }
-.card.wk .wk-bar.peak { box-shadow: 0 12px 34px -8px var(--acc-to); }
+.card.wk .wk-bar.peak { width: 60px; }
 .card.wk .wk-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.24); }
+.card.wk .wk-km.rest { color: var(--ink-dim); }
 .card.wk .wk-day { font-size: 24px; font-weight: 600; color: var(--ink-dim); }
 .card.wk .wk-day.on { color: var(--ink); }
-.card.wk .wk-col.is-today .wk-bar, .card.wk .wk-col.is-today .wk-dot { box-shadow: inset 0 0 0 3px rgba(255,255,255,0.55); }
-.card.wk .wk-col.is-today .wk-day { color: var(--ink); font-weight: 700; }
+/* repère "aujourd'hui" : lettre en couleur d'accent (pas de box-shadow -> rendu fiable à l'export) */
+.card.wk .wk-col.is-today .wk-day { color: var(--acc-to); font-weight: 700; }
 /* objectif : compte à rebours + distance de la semaine */
 .card.wk .wk-obj { display: grid; gap: 22px; margin-top: 40px; }
 .card.wk .wk-obj.two { grid-template-columns: 1fr 1fr; }
@@ -616,7 +617,6 @@ a { color: inherit; text-decoration: none; }
 .card.wk[data-theme="light"] .wk-dot { background: rgba(0,0,0,0.20); }
 .card.wk[data-theme="light"] .wk-rest-chip { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.1); }
 .card.wk[data-theme="light"] .wk-goal .goal-bar { background: rgba(0,0,0,0.09); }
-.card.wk[data-theme="light"] .wk-col.is-today .wk-bar, .card.wk[data-theme="light"] .wk-col.is-today .wk-dot { box-shadow: inset 0 0 0 3px rgba(0,0,0,0.4); }
 
 /* faits marquants (narratif) */
 .card .highlights { display: flex; flex-wrap: wrap; gap: 12px; }

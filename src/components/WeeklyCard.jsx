@@ -52,8 +52,20 @@ const WeeklyCard = forwardRef(function WeeklyCard(
 
   const week = Array.from({ length: 7 }, (_, i) => perDay[i] || 0)
   const maxDay = Math.max(...week, 1)
-  let peakIdx = -1
-  for (let i = 0; i < 7; i++) if (week[i] > 0 && week[i] >= maxDay) { peakIdx = i; break }
+  let peakIdx = -1, leastIdx = -1
+  for (let i = 0; i < 7; i++) {
+    if (week[i] > 0 && week[i] >= maxDay && peakIdx === -1) peakIdx = i
+    if (week[i] > 0 && (leastIdx === -1 || week[i] < week[leastIdx])) leastIdx = i
+  }
+  if (leastIdx === peakIdx) leastIdx = -1 // une seule sortie -> pas de "moins actif" distinct
+  // étiquette d'un jour : km si couru (emoji sur le jour le plus / le moins actif), sinon repos.
+  const dayTag = (i) => {
+    if (week[i] <= 0) return '😴'
+    const km = fmtKm(week[i])
+    if (i === peakIdx) return `🔥 ${km}`
+    if (i === leastIdx) return `🐢 ${km}`
+    return km
+  }
   const restWeek = !summary || summary.count === 0
 
   // objectif — volet événement (compte à rebours)
@@ -129,7 +141,7 @@ const WeeklyCard = forwardRef(function WeeklyCard(
             <div className="wk-bars">
               {DAYS.map((dd, i) => (
                 <div className={`wk-col ${i === todayIdx ? 'is-today' : ''}`} key={i}>
-                  <span className="wk-km">{i === peakIdx && week[i] > 0 ? `🔥 ${fmtKm(week[i])}` : ''}</span>
+                  <span className={`wk-km ${week[i] > 0 ? '' : 'rest'}`}>{dayTag(i)}</span>
                   <div className="wk-track">
                     {week[i] > 0
                       ? <div className={`wk-bar ${i === peakIdx ? 'peak' : ''}`} style={{ height: `${Math.max(8, (week[i] / maxDay) * 100)}%` }} />
@@ -179,7 +191,7 @@ const WeeklyCard = forwardRef(function WeeklyCard(
                 </div>
               </div>
             </div>
-            <div className="powered">Propulsé par <b>Strava</b><br />{handle || 'rewind'}</div>
+            <div className="powered">Propulsé par <b>Strava</b></div>
           </motion.div>
         </div>
       </motion.div>
