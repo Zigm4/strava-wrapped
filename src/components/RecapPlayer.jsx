@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { X, Play, Pause, RotateCcw, Film, Download } from 'lucide-react'
+import { X, RotateCcw, Film, Download } from 'lucide-react'
 import { timeline, drawFrame } from '../lib/recapRender.js'
 import { exportRecapVideo, videoSupport } from '../lib/videoExport.js'
 import { bgCanvasColors } from '../data/backgrounds.js'
 import { saveOrShare } from '../lib/save.js'
 
 const W = 1080, H = 1920
+const HOLD_MS = 160 // au-delà, un appui maintenu = pause (façon Stories) ; en deçà = tap = navigation
 
 // Lecteur plein écran du récap : lecture fluide sur canvas (rAF) + export vidéo.
+// La boucle rAF NE TOURNE QUE pendant la lecture : en pause / fin de vidéo elle s'arrête
+// complètement (un seul dessin figé) — sinon le canvas se redessinerait à 60 fps sans fin
+// et ferait chauffer l'appareil.
 export default function RecapPlayer({ slides, acc, theme = 'dark', background, photo, periodLabel, onClose }) {
   const tl = useMemo(() => timeline(slides), [slides])
   const bgStops = useMemo(() => bgCanvasColors(background?.css), [background])
@@ -20,7 +24,7 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
     photoRef.current = null
     if (!photo) return
     const img = new Image()
-    img.onload = () => { photoRef.current = img }
+    img.onload = () => { photoRef.current = img; ctrlRef.current?.draw() }
     img.src = photo
   }, [photo])
 
@@ -29,10 +33,11 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
   const startRef = useRef(0)  // performance.now() au début du segment
   const playingRef = useRef(true)
   const rafRef = useRef(0)
-  // recale l'horloge sur un temps donné (seek/pause/reprise)
-  const seekTo = (t) => { tRef.current = t; baseRef.current = t; startRef.current = performance.now() }
+  const aliveRef = useRef(false) // partagé (résiste au double-montage StrictMode en dev)
+  const ctrlRef = useRef(null) // { startLoop, stopLoop, draw } fournis par l'effet de rendu
+  const holdRef = useRef({ timer: 0, held: false, x: 0 })
+  const exportingRef = useRef(false) // lu par le handler clavier (deps [], donc l'état serait périmé)
 
-  const [paused, setPaused] = useState(false)
   const [ended, setEnded] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [pct, setPct] = useState(0)
@@ -42,27 +47,45 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
   useEffect(() => {
     const ctx = canvasRef.current?.getContext('2d')
     if (!ctx) return
-    let alive = true
-    const draw = () => drawFrame(ctx, tl, tRef.current, { W, H, acc, theme, bg: { stops: bgStops, image: photoRef.current } })
+    aliveRef.current = true
+    let cancelled = false // garde l'auto-démarrage de CET effet (StrictMode)
     const updateBars = () => {
       tl.items.forEach((it, i) => {
         const el = barsRef.current[i]
         if (el) el.style.width = `${Math.max(0, Math.min(1, (tRef.current - it.start) / it.dur)) * 100}%`
       })
     }
-    const loop = (now) => {
-      if (!alive) return
-      // temps réel écoulé -> vitesse de lecture constante quel que soit le fps
-      if (playingRef.current && !exporting) {
-        tRef.current = baseRef.current + (now - startRef.current) / 1000
-        if (tRef.current >= tl.total) { tRef.current = tl.total; baseRef.current = tl.total; playingRef.current = false; setEnded(true); setPaused(true) }
+    const draw = () => {
+      drawFrame(ctx, tl, tRef.current, { W, H, acc, theme, bg: { stops: bgStops, image: photoRef.current } })
+      updateBars()
+    }
+    const tick = (now) => {
+      if (!aliveRef.current) return
+      tRef.current = baseRef.current + (now - startRef.current) / 1000
+      if (tRef.current >= tl.total) {
+        tRef.current = tl.total; playingRef.current = false
+        draw(); setEnded(true)
+        return // fin : on arrête la boucle (plus aucun dessin -> plus de chauffe)
       }
       draw()
-      updateBars()
-      rafRef.current = requestAnimationFrame(loop)
+      rafRef.current = requestAnimationFrame(tick)
     }
-    const start = () => { startRef.current = performance.now(); baseRef.current = tRef.current; rafRef.current = requestAnimationFrame(loop) }
-    // précharge explicitement les polices utilisées sur le canvas (sinon fallback "banal")
+    const startLoop = () => {
+      cancelAnimationFrame(rafRef.current)
+      aliveRef.current = true
+      playingRef.current = true
+      baseRef.current = tRef.current
+      startRef.current = performance.now()
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    const stopLoop = () => {
+      cancelAnimationFrame(rafRef.current)
+      playingRef.current = false
+      baseRef.current = tRef.current
+      draw() // fige la frame courante, puis plus rien
+    }
+    ctrlRef.current = { startLoop, stopLoop, draw }
+
     const fonts = document.fonts
     const ready = fonts?.load
       ? Promise.all([
@@ -71,14 +94,16 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
           fonts.load('600 40px "Inter"'),
         ]).catch(() => {})
       : Promise.resolve()
-    ready.then(() => { if (alive) start() })
-    return () => { alive = false; cancelAnimationFrame(rafRef.current) }
-  }, [tl, acc, theme, exporting, bgStops])
+    ready.then(() => { if (cancelled) return; draw(); if (playingRef.current && !exporting) startLoop() })
+    return () => { cancelled = true; aliveRef.current = false; cancelAnimationFrame(rafRef.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tl, acc, theme, bgStops])
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape') onClose()
-      else if (e.key === 'ArrowRight') go(1)
+      if (e.key === 'Escape') { onClose(); return }
+      if (exportingRef.current) return // pas d'interaction pendant l'export (comme les gestes)
+      if (e.key === 'ArrowRight') go(1)
       else if (e.key === 'ArrowLeft') go(-1)
       else if (e.key === ' ') { e.preventDefault(); togglePause() }
     }
@@ -95,38 +120,44 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
   function go(dir) {
     const i = currentIndex()
     const ni = Math.max(0, Math.min(tl.items.length - 1, i + dir))
-    seekTo(tl.items[ni].start + 0.001)
+    tRef.current = tl.items[ni].start + 0.001
     setEnded(false)
-    playingRef.current = true
-    setPaused(false)
+    ctrlRef.current?.startLoop()
   }
   function togglePause() {
-    if (ended) { seekTo(0); setEnded(false); playingRef.current = true; setPaused(false); return }
-    if (playingRef.current) {
-      baseRef.current = tRef.current // fige le temps
-      playingRef.current = false
-      setPaused(true)
-    } else {
-      startRef.current = performance.now() // reprend depuis le temps figé
-      baseRef.current = tRef.current
-      playingRef.current = true
-      setPaused(false)
-    }
+    if (ended) { tRef.current = 0; setEnded(false); ctrlRef.current?.startLoop(); return }
+    if (playingRef.current) ctrlRef.current?.stopLoop()
+    else ctrlRef.current?.startLoop()
   }
-  function replay() { seekTo(0); setEnded(false); playingRef.current = true; setPaused(false) }
+  function replay() { tRef.current = 0; setEnded(false); ctrlRef.current?.startLoop() }
 
-  function onStageClick(e) {
+  // Gestes façon Stories : appui maintenu = pause (sans overlay), tap gauche/droite = naviguer.
+  function onPointerDown(e) {
     if (exporting) return
     const rect = e.currentTarget.getBoundingClientRect()
-    const x = (e.clientX - rect.left) / rect.width
-    if (x < 0.33) go(-1)
-    else if (x > 0.67) go(1)
-    else togglePause()
+    holdRef.current.x = (e.clientX - rect.left) / rect.width
+    holdRef.current.held = false
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+    holdRef.current.timer = setTimeout(() => {
+      holdRef.current.held = true
+      if (playingRef.current) ctrlRef.current?.stopLoop() // pause silencieuse
+    }, HOLD_MS)
   }
+  function endHold(navigate) {
+    clearTimeout(holdRef.current.timer)
+    if (holdRef.current.held) {
+      holdRef.current.held = false
+      if (!ended) ctrlRef.current?.startLoop() // relâche -> reprend
+    } else if (navigate) {
+      go(holdRef.current.x < 0.33 ? -1 : 1)
+    }
+  }
+  function onPointerUp() { if (!exporting) endHold(true) }
+  function onPointerCancel() { if (!exporting) endHold(false) }
 
   async function handleExport() {
     if (exporting) return
-    setExporting(true); setPct(0); playingRef.current = false; setPaused(true)
+    setExporting(true); exportingRef.current = true; setPct(0); ctrlRef.current?.stopLoop()
     try {
       const { blob, ext } = await exportRecapVideo(tl, { W, H, acc, theme, bg: { stops: bgStops, image: photoRef.current }, fps: 30 }, (p) => setPct(Math.round(p * 100)))
       const name = `rewind-${String(periodLabel || '').replace(/\s+/g, '-').toLowerCase()}.${ext}`
@@ -137,7 +168,7 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
       console.error(err)
       setToast("L'export vidéo a échoué sur ce navigateur.")
     } finally {
-      setExporting(false)
+      setExporting(false); exportingRef.current = false
     }
   }
 
@@ -157,11 +188,8 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
 
       <button className="recap-close" onClick={onClose} aria-label="Fermer"><X size={22} /></button>
 
-      <div className="recap-stage" onClick={onStageClick}>
+      <div className="recap-stage" onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}>
         <canvas ref={canvasRef} width={W} height={H} className="recap-canvas" />
-        {paused && !exporting && !ended && (
-          <div className="recap-hint"><Play size={40} /></div>
-        )}
         {exporting && (
           <div className="recap-export">
             <div className="recap-spinner" />
@@ -172,10 +200,8 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
       </div>
 
       <div className="recap-actions" onClick={(e) => e.stopPropagation()}>
-        {ended ? (
+        {ended && (
           <button className="btn btn-ghost" onClick={replay}><RotateCcw size={17} /> Rejouer</button>
-        ) : (
-          <button className="btn btn-ghost" onClick={togglePause}>{paused ? <><Play size={17} /> Lire</> : <><Pause size={17} /> Pause</>}</button>
         )}
         {support !== 'none' ? (
           <button className="btn btn-strava" onClick={handleExport} disabled={exporting}>
