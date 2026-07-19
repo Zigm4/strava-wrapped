@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { X, RotateCcw, Film, Download } from 'lucide-react'
+import { X, RotateCcw, Film, Download, Images, Check } from 'lucide-react'
 import { timeline, drawFrame } from '../lib/recapRender.js'
 import { exportRecapVideo, videoSupport } from '../lib/videoExport.js'
 import { bgCanvasColors } from '../data/backgrounds.js'
 import { saveOrShare } from '../lib/save.js'
+
+// Instant "posé" d'une slide (entrée finie, avant la transition de sortie) -> export propre.
+const settleT = (it) => it.start + it.dur - 0.5
 
 const W = 1080, H = 1920
 const HOLD_MS = 160 // au-delà, un appui maintenu = pause (façon Stories) ; en deçà = tap = navigation
@@ -42,7 +45,65 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
   const [exporting, setExporting] = useState(false)
   const [pct, setPct] = useState(0)
   const [toast, setToast] = useState(null)
+  const [gallery, setGallery] = useState(false) // galerie d'export des slides
+  const [sel, setSel] = useState(() => new Set()) // indices de slides sélectionnés
+  const thumbRefs = useRef([])
+  const offRef = useRef(null) // canvas 1080x1920 hors-écran (rendu des vignettes/export)
   const support = useMemo(() => videoSupport(), [])
+
+  const renderOpts = () => ({ W, H, acc, theme, bg: { stops: bgStops, image: photoRef.current } })
+  const getOff = () => {
+    if (!offRef.current) { const c = document.createElement('canvas'); c.width = W; c.height = H; offRef.current = c }
+    return offRef.current
+  }
+
+  // rend les vignettes quand la galerie s'ouvre (slide à son état "posé")
+  useEffect(() => {
+    if (!gallery) return
+    const off = getOff(); const octx = off.getContext('2d')
+    tl.items.forEach((it, i) => {
+      const cv = thumbRefs.current[i]; if (!cv) return
+      drawFrame(octx, tl, settleT(it), renderOpts())
+      const tctx = cv.getContext('2d'); tctx.clearRect(0, 0, cv.width, cv.height)
+      tctx.drawImage(off, 0, 0, cv.width, cv.height)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gallery, tl])
+
+  const toggleSel = (i) => setSel((prev) => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n })
+  const allSelected = sel.size === tl.items.length
+  const toggleAll = () => setSel(allSelected ? new Set() : new Set(tl.items.map((_, i) => i)))
+
+  async function exportSlides() {
+    if (exporting || !sel.size) return
+    setExporting(true); exportingRef.current = true
+    try {
+      const off = getOff(); const octx = off.getContext('2d')
+      const indices = [...sel].sort((x, y) => x - y)
+      const files = []
+      for (const i of indices) {
+        drawFrame(octx, tl, settleT(tl.items[i]), renderOpts())
+        const blob = await new Promise((r) => off.toBlob(r, 'image/png'))
+        if (blob) files.push(new File([blob], `rewind-slide-${i + 1}.png`, { type: 'image/png' }))
+      }
+      if (!files.length) throw new Error('empty')
+      if (navigator.canShare && navigator.canShare({ files })) {
+        await navigator.share({ files, title: 'Mes slides Rewind' })
+        setToast(`${files.length} slide${files.length > 1 ? 's' : ''} partagée${files.length > 1 ? 's' : ''} 🖼️`)
+      } else {
+        for (const f of files) {
+          const u = URL.createObjectURL(f); const link = document.createElement('a')
+          link.href = u; link.download = f.name; link.click()
+          setTimeout(() => URL.revokeObjectURL(u), 8000)
+        }
+        setToast(`${files.length} image${files.length > 1 ? 's' : ''} téléchargée${files.length > 1 ? 's' : ''} 🖼️`)
+      }
+    } catch (err) {
+      if (err?.name !== 'AbortError') { console.error(err); setToast("L'export des slides a échoué.") }
+    } finally {
+      setExporting(false); exportingRef.current = false
+    }
+  }
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext('2d')
@@ -203,6 +264,9 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
         {ended && (
           <button className="btn btn-ghost" onClick={replay}><RotateCcw size={17} /> Rejouer</button>
         )}
+        {ended && (
+          <button className="btn btn-ghost" onClick={() => setGallery(true)}><Images size={17} /> Exporter des slides</button>
+        )}
         {support !== 'none' ? (
           <button className="btn btn-strava" onClick={handleExport} disabled={exporting}>
             {exporting ? <><span className="spinner" /> {pct}%</> : <><Film size={18} /> Exporter la vidéo</>}
@@ -211,6 +275,29 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
           <div className="recap-note"><Download size={15} /> Export vidéo indisponible sur ce navigateur — utilise l'image.</div>
         )}
       </div>
+
+      {gallery && (
+        <div className="recap-gallery" onClick={(e) => e.stopPropagation()}>
+          <div className="rg-head">
+            <div className="rg-title">Choisis tes slides</div>
+            <button className="btn btn-ghost btn-sm" onClick={toggleAll}>{allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}</button>
+            <button className="recap-close rg-close" onClick={() => setGallery(false)} aria-label="Fermer"><X size={20} /></button>
+          </div>
+          <div className="rg-grid">
+            {tl.items.map((_, i) => (
+              <button key={i} type="button" className={`rg-thumb ${sel.has(i) ? 'on' : ''}`} onClick={() => toggleSel(i)}>
+                <canvas ref={(el) => (thumbRefs.current[i] = el)} width={200} height={356} />
+                {sel.has(i) && <span className="rg-check"><Check size={16} /></span>}
+              </button>
+            ))}
+          </div>
+          <div className="rg-foot">
+            <button className="btn btn-strava" onClick={exportSlides} disabled={exporting || !sel.size}>
+              {exporting ? <><span className="spinner" /> Export…</> : <><Download size={18} /> Exporter {sel.size ? `(${sel.size})` : ''}</>}
+            </button>
+          </div>
+        </div>
+      )}
 
       {toast && <div className="toast recap-toast">{toast}</div>}
     </div>
