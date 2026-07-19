@@ -2,6 +2,7 @@ import PeriodPanel from './controls/PeriodPanel.jsx'
 import FilterPanel from './controls/FilterPanel.jsx'
 import FormatPanel from './controls/FormatPanel.jsx'
 import TextPanel from './controls/TextPanel.jsx'
+import ObjectivePanel from './controls/ObjectivePanel.jsx'
 import AppearancePanel from './controls/AppearancePanel.jsx'
 import ExportBar from './controls/ExportBar.jsx'
 
@@ -11,6 +12,8 @@ export default function Controls({
   months, selectedMonthKey, onSelectMonth,
   monthViewYear, onPrevYear, onNextYear, canPrevYear, canNextYear,
   years, selectedYear, onSelectYear,
+  weeks, selectedWeekKey, onSelectWeek,
+  objectiveText, onObjectiveText, objectiveDate, onObjectiveDate, weeklyGoalKm, onWeeklyGoalKm,
   availFamilies, selectedFamilies, onToggleFamily, onAllFamilies, allActive,
   compareMode, onCompareMode, deltaLabel, comparePartial, compareReason, compareInProgress, compareAsOf,
   formatId, onFormat,
@@ -34,6 +37,7 @@ export default function Controls({
         monthViewYear={monthViewYear} onPrevYear={onPrevYear} onNextYear={onNextYear}
         canPrevYear={canPrevYear} canNextYear={canNextYear}
         years={years} selectedYear={selectedYear} onSelectYear={onSelectYear}
+        weeks={weeks} selectedWeekKey={selectedWeekKey} onSelectWeek={onSelectWeek}
       />
       <FilterPanel
         availFamilies={availFamilies} selectedFamilies={selectedFamilies} onToggleFamily={onToggleFamily}
@@ -45,6 +49,13 @@ export default function Controls({
       />
       <FormatPanel formatId={formatId} onFormat={onFormat} />
       <TextPanel title={title} onTitle={onTitle} handle={handle} onHandle={onHandle} />
+      {period === 'week' && (
+        <ObjectivePanel
+          objectiveText={objectiveText} onObjectiveText={onObjectiveText}
+          objectiveDate={objectiveDate} onObjectiveDate={onObjectiveDate}
+          weeklyGoalKm={weeklyGoalKm} onWeeklyGoalKm={onWeeklyGoalKm}
+        />
+      )}
       <AppearancePanel
         backgrounds={backgrounds} bgId={bgId} onBg={onBg}
         accents={accents} accentId={accentId} onAccent={onAccent}

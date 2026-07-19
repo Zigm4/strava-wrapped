@@ -14,6 +14,10 @@ export function useCardOptions() {
   const [privacy, setPrivacy] = useState(true) // masquer le départ/arrivée du tracé
   const [showHeatmap, setShowHeatmap] = useState(false) // calendrier vs carte du spot
   const [compareMode, setCompareMode] = useState('off') // 'off' | 'prev' | 'yoy'
+  // Objectif (carte hebdo) : événement (texte + date -> compte à rebours) + distance de la semaine
+  const [objectiveText, setObjectiveText] = useState('')
+  const [objectiveDate, setObjectiveDate] = useState('')
+  const [weeklyGoalKm, setWeeklyGoalKm] = useState('')
 
   const background = BACKGROUNDS.find((b) => b.id === bgId) || DEFAULT_BG
   const accent = ACCENTS.find((a) => a.id === accentId) || DEFAULT_ACCENT
@@ -31,6 +35,7 @@ export function useCardOptions() {
     formatId, setFormatId, bgId, accentId, setAccentId, theme, setTheme,
     photo, scrim, setScrim, title, setTitle, handle, setHandle,
     privacy, setPrivacy, showHeatmap, setShowHeatmap, compareMode, setCompareMode,
+    objectiveText, setObjectiveText, objectiveDate, setObjectiveDate, weeklyGoalKm, setWeeklyGoalKm,
     background, accent, chooseBg, choosePhoto, clearPhoto,
   }
 }

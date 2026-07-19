@@ -1,9 +1,64 @@
 // Sélecteurs PURS de période et de comparaison (aucun React, aucun I/O).
 // Extraits de Studio pour être testables et réutilisables.
 
-import { localYear, localMonth, localParts, localTime } from './date.js'
+import { localYear, localMonth, localParts, localTime, localWeekday, localDayNumber } from './date.js'
 import { familyKey, FAMILIES } from './activityTypes.js'
 import { monthShort, monthLabel } from './format.js'
+
+// --- Semaines (lundi→dimanche), hors fuseau ---------------------------------
+// Une semaine est identifiée par le n° ordinal (jours depuis l'époque) de son LUNDI.
+const MS_PER_DAY = 86400000
+// ordinal du lundi de la semaine contenant `iso`
+const weekStartOrdinal = (iso) => localDayNumber(iso) - ((localWeekday(iso) + 6) % 7)
+// ordinal -> composantes de date (UTC, donc stable quel que soit le fuseau)
+function ordinalToParts(n) {
+  const d = new Date(n * MS_PER_DAY)
+  return { year: d.getUTCFullYear(), month: d.getUTCMonth(), day: d.getUTCDate() }
+}
+// ordinal du lundi de la semaine courante (aujourd'hui)
+function currentMondayOrdinal() {
+  const now = new Date()
+  const today = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / MS_PER_DAY)
+  return today - ((now.getDay() + 6) % 7)
+}
+
+export function makeWeek(mondayOrdinal, count = 0, floor = null) {
+  const s = ordinalToParts(mondayOrdinal)
+  const e = ordinalToParts(mondayOrdinal + 6)
+  const sameMonth = s.year === e.year && s.month === e.month
+  const label = sameMonth
+    ? `${s.day}–${e.day} ${monthShort(e.month)}`
+    : `${s.day} ${monthShort(s.month)} – ${e.day} ${monthShort(e.month)}`
+  const outOfRange = !!floor && (s.year < floor.year || (s.year === floor.year && s.month < floor.month))
+  return { key: `w${mondayOrdinal}`, mondayOrdinal, start: s, end: e, label, count, outOfRange }
+}
+
+// Les `count` dernières semaines (semaine courante en tête), avec le nb d'activités.
+export function buildWeeks(activities, floor, count = 12) {
+  const monday = currentMondayOrdinal()
+  const counts = {}
+  for (const a of activities) {
+    const w = weekStartOrdinal(a.start_date_local)
+    counts[w] = (counts[w] || 0) + 1
+  }
+  return Array.from({ length: count }, (_, i) => makeWeek(monday - i * 7, counts[monday - i * 7] || 0, floor))
+}
+
+// Semaine de l'activité la plus récente (défaut de sélection), bornée à la semaine courante.
+export function mostRecentWeek(activities) {
+  const monday = currentMondayOrdinal()
+  if (!activities.length) return { mondayOrdinal: monday }
+  let best = -Infinity
+  for (const a of activities) { const w = weekStartOrdinal(a.start_date_local); if (w > best) best = w }
+  return { mondayOrdinal: Math.min(best, monday) }
+}
+
+// Distances (mètres) par jour de semaine, lundi→dimanche (7 cases). Pour le graph hebdo.
+export function weekdayDistances(activities) {
+  const d = new Array(7).fill(0)
+  for (const a of activities) d[(localWeekday(a.start_date_local) + 6) % 7] += a.distance || 0
+  return d
+}
 
 export function makeMonth(year, m, count = 0) {
   return { key: `${year}-${m}`, year, month: m, short: monthShort(m), label: monthLabel(year, m), count }
@@ -49,9 +104,10 @@ export function buildYears(activities) {
   return years
 }
 
-// Activités de la période sélectionnée (mois ou année).
-export function periodActivitiesOf(activities, period, year, month) {
+// Activités de la période sélectionnée (semaine, mois ou année).
+export function periodActivitiesOf(activities, period, year, month, week) {
   if (period === 'year') return activities.filter((a) => localYear(a.start_date_local) === year)
+  if (period === 'week') return week ? activities.filter((a) => weekStartOrdinal(a.start_date_local) === week.mondayOrdinal) : []
   return activities.filter((a) => localYear(a.start_date_local) === month.year && localMonth(a.start_date_local) === month.month)
 }
 

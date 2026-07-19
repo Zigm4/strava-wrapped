@@ -42,6 +42,14 @@ export function localTime(iso) {
   return Date.UTC(year, month, day, hour, minute)
 }
 
+// Jours d'ici à une date "YYYY-MM-DD" (compte à rebours "J-x"). Positif = futur, 0 = aujourd'hui.
+export function daysUntil(dateStr) {
+  if (!dateStr) return null
+  const now = new Date()
+  const today = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000)
+  return localDayNumber(dateStr) - today
+}
+
 // Formate un Date local en chaîne "façon Strava" (heure murale + "Z"),
 // pour que les données de démo suivent la même convention que l'API réelle.
 export function toStravaLocal(d) {

@@ -382,6 +382,23 @@ a { color: inherit; text-decoration: none; }
 .month-chip.out-of-range:hover { border-color: var(--border); background: rgba(255,255,255,0.02); }
 .month-chip:disabled { pointer-events: none; }
 
+/* liste des semaines (mode "Semaine") */
+.weeks { display: flex; flex-direction: column; gap: 7px; }
+.week-chip {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 11px 14px; border-radius: var(--radius-sm); font-size: 13.5px;
+  border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+  transition: all 0.2s var(--ease-spring); text-align: left;
+}
+.week-chip .wk-range { font-weight: 600; }
+.week-chip .wk-count { font-size: 11.5px; color: var(--text-faint); flex: none; }
+.week-chip:hover { border-color: var(--border-strong); background: var(--surface); }
+.week-chip.active { border-color: var(--strava); background: linear-gradient(135deg, rgba(252,76,2,0.22), rgba(255,45,111,0.16)); box-shadow: 0 0 0 1px var(--strava) inset; }
+.week-chip.active .wk-count { color: var(--text-dim); }
+.week-chip.empty { opacity: 0.5; }
+.week-chip.empty.active { opacity: 1; }
+.week-chip.out-of-range { opacity: 0.28; cursor: not-allowed; pointer-events: none; }
+
 /* navigateur d'année (mode "Par mois") */
 .year-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 2px; }
 .year-nav span { font-family: var(--font-display); font-weight: 600; font-size: 17px; }
@@ -560,6 +577,46 @@ a { color: inherit; text-decoration: none; }
 .card .hero .goal-lbl { font-size: 24px; font-weight: 500; color: var(--ink-dim); margin-top: 12px; }
 .card .hero .goal-lbl b { color: var(--ink); font-weight: 700; }
 .card .hero .goal-asof { opacity: 0.7; }
+
+/* ===== Carte hebdomadaire ===== */
+.card.wk .wk-range { text-align: right; }
+.card.wk .wk-kicker { font-size: 20px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); }
+.card.wk .wk-range-val { font-family: var(--font-display); font-weight: 700; font-size: 40px; line-height: 1.05; margin-top: 6px; letter-spacing: -0.01em; }
+.card.wk .hero .value { font-size: 190px; }
+.card.wk .wk-rest-chip { display: inline-block; margin-left: 14px; padding: 5px 15px; border-radius: 999px; font-size: 20px; font-weight: 600; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.16); vertical-align: middle; }
+/* graph des jours (lundi→dimanche) */
+.card.wk .wk-graph { margin-top: 40px; }
+.card.wk .wk-bars { display: flex; gap: 14px; margin-top: 22px; }
+.card.wk .wk-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.card.wk .wk-km { height: 30px; font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--ink); white-space: nowrap; }
+.card.wk .wk-track { width: 100%; height: 300px; display: flex; align-items: flex-end; justify-content: center; }
+.card.wk .wk-bar { width: 56px; max-width: 100%; border-radius: 16px 16px 6px 6px; background: linear-gradient(180deg, var(--acc-from), var(--acc-to)); }
+.card.wk .wk-bar.peak { box-shadow: 0 12px 34px -8px var(--acc-to); }
+.card.wk .wk-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.24); }
+.card.wk .wk-day { font-size: 24px; font-weight: 600; color: var(--ink-dim); }
+.card.wk .wk-day.on { color: var(--ink); }
+.card.wk .wk-col.is-today .wk-bar, .card.wk .wk-col.is-today .wk-dot { box-shadow: inset 0 0 0 3px rgba(255,255,255,0.55); }
+.card.wk .wk-col.is-today .wk-day { color: var(--ink); font-weight: 700; }
+/* objectif : compte à rebours + distance de la semaine */
+.card.wk .wk-obj { display: grid; gap: 22px; margin-top: 40px; }
+.card.wk .wk-obj.two { grid-template-columns: 1fr 1fr; }
+.card.wk .wk-obj.one { grid-template-columns: 1fr; }
+.card.wk .wk-tile { padding: 28px 26px; border-radius: 26px; background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(10px); }
+.card.wk .wk-event-name { font-family: var(--font-display); font-weight: 600; font-size: 34px; line-height: 1.1; margin-top: 12px; }
+.card.wk .wk-jx { font-family: var(--font-display); font-weight: 700; font-size: 72px; line-height: 1; letter-spacing: -0.03em; }
+.card.wk .wk-jx-sub { font-size: 22px; color: var(--ink-dim); margin-top: 8px; }
+.card.wk .wk-goal-nums { font-family: var(--font-display); font-weight: 700; font-size: 46px; margin: 14px 0 16px; }
+.card.wk .wk-goal-tot { color: var(--ink-dim); font-size: 30px; }
+.card.wk .wk-goal .goal-bar { height: 16px; border-radius: 999px; background: rgba(255,255,255,0.14); overflow: hidden; }
+.card.wk .wk-goal .goal-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--acc-from), var(--acc-to)); transition: width 0.5s var(--ease-spring); }
+.card.wk .wk-goal-lbl { font-size: 24px; color: var(--ink-dim); margin-top: 14px; }
+.card.wk .wk-goal-lbl b { color: var(--ink); font-weight: 700; }
+/* thème clair */
+.card.wk[data-theme="light"] .wk-tile { background: rgba(0,0,0,0.045); border-color: rgba(0,0,0,0.08); }
+.card.wk[data-theme="light"] .wk-dot { background: rgba(0,0,0,0.20); }
+.card.wk[data-theme="light"] .wk-rest-chip { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.1); }
+.card.wk[data-theme="light"] .wk-goal .goal-bar { background: rgba(0,0,0,0.09); }
+.card.wk[data-theme="light"] .wk-col.is-today .wk-bar, .card.wk[data-theme="light"] .wk-col.is-today .wk-dot { box-shadow: inset 0 0 0 3px rgba(0,0,0,0.4); }
 
 /* faits marquants (narratif) */
 .card .highlights { display: flex; flex-wrap: wrap; gap: 12px; }

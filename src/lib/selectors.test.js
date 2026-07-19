@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   buildMonthsForYear, mostRecentMonth, buildYears, periodActivitiesOf,
   referencePeriod, computeComparison, computeTypeCompareRows, computeProgress,
+  buildWeeks, makeWeek, mostRecentWeek, weekdayDistances,
 } from './selectors.js'
 import { generateDemoActivities } from './demoData.js'
 import { familyKey } from './activityTypes.js'
@@ -122,5 +123,52 @@ describe('selectors — comparaison « à date » (période en cours)', () => {
     expect(prog.remaining).toBe(0)
     expect(prog.pct).toBe(1)
     expect(computeProgress(cur, [], () => true)).toBeNull() // référence vide -> pas d'objectif
+  })
+})
+
+describe('selectors — semaine (lundi→dimanche)', () => {
+  afterEach(() => vi.useRealTimers())
+
+  const acts = [
+    { start_date_local: '2026-07-06T07:00:00Z', type: 'Run', distance: 5000 },  // lundi (semaine courante)
+    { start_date_local: '2026-07-08T18:00:00Z', type: 'Run', distance: 8000 },  // mercredi (semaine courante)
+    { start_date_local: '2026-07-12T09:00:00Z', type: 'Run', distance: 21000 }, // dimanche (semaine courante)
+    { start_date_local: '2026-07-05T09:00:00Z', type: 'Run', distance: 3000 },  // dimanche précédent (semaine d'avant)
+    { start_date_local: '2026-07-13T09:00:00Z', type: 'Run', distance: 4000 },  // lundi suivant (semaine future)
+  ]
+
+  it('groupe par semaine lundi→dimanche, labels et comptes', () => {
+    vi.setSystemTime(new Date(2026, 6, 8)) // mercredi 8 juillet 2026 -> semaine 6–12 juil.
+    const weeks = buildWeeks(acts, { year: 2020, month: 0 }, 3)
+    expect(weeks[0].label).toBe('6–12 juil.')
+    expect(weeks[0].count).toBe(3)               // lundi + mercredi + dimanche
+    expect(weeks[1].label).toBe('29 juin – 5 juil.') // semaine précédente, à cheval sur 2 mois
+    expect(weeks[1].count).toBe(1)               // le dimanche 5 juil.
+  })
+
+  it('periodActivitiesOf filtre la semaine sélectionnée', () => {
+    vi.setSystemTime(new Date(2026, 6, 8))
+    const weeks = buildWeeks(acts, null, 3)
+    const inWeek = periodActivitiesOf(acts, 'week', null, null, weeks[0])
+    expect(inWeek).toHaveLength(3)
+    expect(inWeek.some((a) => a.start_date_local.startsWith('2026-07-13'))).toBe(false) // lundi suivant exclu
+  })
+
+  it('weekdayDistances : lundi→dimanche', () => {
+    const wd = weekdayDistances([
+      { start_date_local: '2026-07-06T07:00:00Z', distance: 5000 },  // lundi -> idx 0
+      { start_date_local: '2026-07-08T18:00:00Z', distance: 8000 },  // mercredi -> idx 2
+      { start_date_local: '2026-07-12T09:00:00Z', distance: 21000 }, // dimanche -> idx 6
+    ])
+    expect(wd[0]).toBe(5000)
+    expect(wd[2]).toBe(8000)
+    expect(wd[6]).toBe(21000)
+    expect(wd[1]).toBe(0)
+  })
+
+  it('mostRecentWeek borne à la semaine courante', () => {
+    vi.setSystemTime(new Date(2026, 6, 8)) // l'activité la plus récente (13 juil.) est la semaine suivante
+    const w = makeWeek(mostRecentWeek(acts).mondayOrdinal)
+    expect(w.label).toBe('6–12 juil.') // bornée à la semaine courante
   })
 })

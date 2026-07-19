@@ -5,15 +5,32 @@ export default function PeriodPanel({
   months, selectedMonthKey, onSelectMonth,
   monthViewYear, onPrevYear, onNextYear, canPrevYear, canNextYear,
   years, selectedYear, onSelectYear,
+  weeks, selectedWeekKey, onSelectWeek,
 }) {
   return (
     <div className="panel">
       <h3><CalendarRange size={15} /> Période</h3>
       <div className="segment" style={{ marginBottom: 14 }}>
-        <button className={period === 'month' ? 'active' : ''} onClick={() => onPeriod('month')}>Par mois</button>
-        <button className={period === 'year' ? 'active' : ''} onClick={() => onPeriod('year')}>Bilan annuel</button>
+        <button className={period === 'week' ? 'active' : ''} onClick={() => onPeriod('week')}>Semaine</button>
+        <button className={period === 'month' ? 'active' : ''} onClick={() => onPeriod('month')}>Mois</button>
+        <button className={period === 'year' ? 'active' : ''} onClick={() => onPeriod('year')}>Année</button>
       </div>
-      {period === 'month' ? (
+      {period === 'week' ? (
+        <div className="weeks">
+          {weeks.map((w) => (
+            <button
+              key={w.key}
+              className={`week-chip ${w.key === selectedWeekKey ? 'active' : ''} ${w.count === 0 ? 'empty' : ''} ${w.outOfRange ? 'out-of-range' : ''}`}
+              disabled={w.outOfRange}
+              title={w.outOfRange ? 'Hors de l\'historique téléchargé (5 ans)' : undefined}
+              onClick={() => onSelectWeek(w)}
+            >
+              <span className="wk-range">{w.label}</span>
+              <span className="wk-count">{w.outOfRange ? '—' : w.count > 0 ? `${w.count} act.` : '-'}</span>
+            </button>
+          ))}
+        </div>
+      ) : period === 'month' ? (
         <>
           <div className="year-nav">
             <button className="ynav-btn" disabled={!canPrevYear} onClick={onPrevYear} aria-label="Année précédente"><ChevronLeft size={18} /></button>

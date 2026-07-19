@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
 import Controls from './Controls.jsx'
 import StoryCard from './StoryCard.jsx'
+import WeeklyCard from './WeeklyCard.jsx'
 import PosterCard from './PosterCard.jsx'
 import RecapPlayer from './RecapPlayer.jsx'
 import { aggregate, personalBestIds } from '../lib/aggregate.js'
+import { weekdayDistances } from '../lib/selectors.js'
 import { buildRecap } from '../lib/recap.js'
 import { buildSnapshot, shareUrl } from '../lib/share.js'
 import { monthHeatmap, yearHeatmap } from '../lib/heatmap.js'
@@ -53,8 +55,28 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
     [summary, sp.spot?.route],
   )
 
-  const defaultTitle = athleteName || (per.period === 'year' ? 'Mon année' : 'Mon mois')
+  const defaultTitle = athleteName || (per.period === 'year' ? 'Mon année' : per.period === 'week' ? 'Ma semaine' : 'Mon mois')
   const resolvedTitle = opt.title.trim() || defaultTitle
+
+  // Données de la carte hebdo : distances par jour (lundi→dimanche) sur les activités filtrées,
+  // et l'index du jour d'aujourd'hui s'il tombe dans la semaine affichée (pour le repère "aujourd'hui").
+  const weekPerDay = useMemo(
+    () => (per.period === 'week' ? weekdayDistances(filter.filteredActivities) : []),
+    [per.period, filter.filteredActivities],
+  )
+  const weekTodayIdx = useMemo(() => {
+    if (per.period !== 'week') return -1
+    const now = new Date()
+    const today = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000)
+    const off = today - per.week.mondayOrdinal
+    return off >= 0 && off <= 6 ? off : -1
+  }, [per.period, per.week])
+  const weekGoalKm = parseFloat(opt.weeklyGoalKm)
+  // identité stable -> évite de relancer l'effet fit-to-frame de WeeklyCard à chaque render
+  const weekEvent = useMemo(
+    () => ({ name: opt.objectiveText.trim(), date: opt.objectiveDate }),
+    [opt.objectiveText, opt.objectiveDate],
+  )
 
   // heatmap calendrier de la période (jour par jour)
   const heatmap = useMemo(() => {
@@ -71,9 +93,10 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
     [summary, per.period, per.year, per.month, per.periodLabel, athleteName, opt.privacy, cmp.comparison, cmp.typeCompare, opt.compareMode, heatmap, filter.filteredActivities],
   )
 
-  // changer de mois/année/période réinitialise le filtre de familles
+  // changer de semaine/mois/année/période réinitialise le filtre de familles
   const selectMonth = (m) => { per.setMonth(m); filter.resetFilters() }
   const selectYear = (y) => { per.setYear(y); filter.resetFilters() }
+  const selectWeek = (w) => { per.setWeek(w); filter.resetFilters() }
   const selectPeriod = (p) => { per.setPeriod(p); filter.resetFilters() }
 
   // Lien Wrapped partageable : snapshot compact -> #w=... copié dans le presse-papiers.
@@ -111,6 +134,10 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
         monthViewYear={per.monthViewYear} onPrevYear={per.prevMonthYear} onNextYear={per.nextMonthYear}
         canPrevYear={per.canPrevYear} canNextYear={per.canNextYear}
         years={per.years} selectedYear={per.year} onSelectYear={selectYear}
+        weeks={per.weeks} selectedWeekKey={per.week.key} onSelectWeek={selectWeek}
+        objectiveText={opt.objectiveText} onObjectiveText={opt.setObjectiveText}
+        objectiveDate={opt.objectiveDate} onObjectiveDate={opt.setObjectiveDate}
+        weeklyGoalKm={opt.weeklyGoalKm} onWeeklyGoalKm={opt.setWeeklyGoalKm}
         availFamilies={filter.availFamilies} selectedFamilies={filter.selected} onToggleFamily={filter.toggleFamily}
         onAllFamilies={filter.resetFilters} allActive={filter.allActive}
         compareMode={opt.compareMode} onCompareMode={opt.setCompareMode} deltaLabel={cmp.typeCompare.label}
@@ -129,7 +156,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
         onExport={exp.handleExport} exporting={exp.exporting} onShare={exp.handleShare} canShare={canShare}
         onCopy={exp.handleCopy} canCopy={canCopy}
         onShareLink={handleShareLink}
-        onPlayRecap={recapSlides.length > 1 ? () => setShowRecap(true) : null}
+        onPlayRecap={per.period !== 'week' && recapSlides.length > 1 ? () => setShowRecap(true) : null}
       />
 
       <div className="stage-wrap" ref={exp.wrapRef}>
@@ -148,6 +175,25 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
               accent={opt.accent}
               theme={opt.theme}
               privacy={opt.privacy}
+            />
+          ) : per.period === 'week' ? (
+            <WeeklyCard
+              ref={exp.cardRef}
+              summary={summary}
+              formatId={opt.formatId}
+              background={opt.background}
+              photo={opt.photo}
+              periodLabel={per.periodLabel}
+              scrim={opt.scrim}
+              accent={opt.accent}
+              theme={opt.theme}
+              title={resolvedTitle}
+              handle={opt.handle.trim()}
+              perDay={weekPerDay}
+              event={weekEvent}
+              goal={weekGoalKm}
+              todayIdx={weekTodayIdx}
+              still={exp.capturing}
             />
           ) : (
             <StoryCard
