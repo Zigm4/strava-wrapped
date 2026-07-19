@@ -12,7 +12,7 @@ const BODY = 'Inter' // labels, sous-titres
 const HERO = 'Anton' // police d'affichage massive de la vidéo (chiffres, titres) — fort caractère
 
 // durée de chaque slide (s) — rythme posé, façon story (~32 s au total pour un bilan annuel)
-const DUR = { cover: 2.8, distance: 3.4, sports: 3.3, compare: 3.2, months: 3.2, route: 3.8, elevation: 3.3, streak: 3.6, poster: 3.3, weekdays: 3.4, objective: 3.6, final: 3.6 }
+const DUR = { cover: 2.8, distance: 3.4, sports: 3.3, compare: 3.2, months: 3.2, route: 3.8, elevation: 4.4, streak: 3.6, poster: 3.3, weekdays: 3.4, objective: 3.6, final: 3.6 }
 
 export function timeline(slides) {
   let t = 0
@@ -355,23 +355,32 @@ function drawRoute(ctx, W, H, s, lt, acc, ink, a) {
   text(ctx, `${km} km · ${fmtElev(s.elevation)} m D+`, cx, H * 0.84, { size: 42, weight: 500, font: BODY, color: ink.dim, align: 'center', alpha: a * info })
 }
 
-// Profil de crête (normalisé) : x fraction -> hauteur fraction (0 = base, 1 = plus haut sommet)
-const RIDGE = [
-  [0.00, 0.26], [0.09, 0.60], [0.17, 0.40], [0.28, 0.82],
-  [0.38, 0.54], [0.50, 1.00], [0.61, 0.60], [0.72, 0.86],
-  [0.83, 0.46], [0.92, 0.66], [1.00, 0.30],
-]
-function ridgeYAt(xf) {
-  for (let i = 1; i < RIDGE.length; i++) {
-    if (xf <= RIDGE[i][0]) {
-      const [x0, y0] = RIDGE[i - 1], [x1, y1] = RIDGE[i]
-      const k = (xf - x0) / (x1 - x0 || 1)
-      return y0 + (y1 - y0) * k
+const fmtRatio = (r) => (r >= 10 ? String(Math.round(r)) : r.toFixed(1).replace('.', ','))
+
+// Profil d'altitude : points de contrôle (xFrac, altFrac ; 1 = sommet), x monotone.
+const ELEV_CP = [[0, 0.06], [0.11, 0.22], [0.22, 0.16], [0.33, 0.40], [0.44, 0.50], [0.55, 0.74], [0.68, 1.00], [0.79, 0.70], [0.89, 0.46], [1.00, 0.28]]
+// Trace une crête LISSE (Catmull-Rom -> bézier cubique) — organique, jamais cassée.
+function crestPath(ctx, pts) {
+  const f = 0.5 / 3
+  ctx.moveTo(pts[0].x, pts[0].y)
+  for (let k = 0; k < pts.length - 1; k++) {
+    const p0 = pts[k - 1] || pts[0], p1 = pts[k], p2 = pts[k + 1], p3 = pts[k + 2] || pts[pts.length - 1]
+    ctx.bezierCurveTo(p1.x + (p2.x - p0.x) * f, p1.y + (p2.y - p0.y) * f, p2.x - (p3.x - p1.x) * f, p2.y - (p3.y - p1.y) * f, p2.x, p2.y)
+  }
+}
+// Y de la crête à l'abscisse rx (pour poser la tête du stylo)
+function crestYAtX(P, rx) {
+  const f = 0.5 / 3
+  for (let k = 0; k < P.length - 1; k++) {
+    if (rx >= P[k].x && rx <= P[k + 1].x) {
+      const p0 = P[k - 1] || P[0], p1 = P[k], p2 = P[k + 1], p3 = P[k + 2] || P[P.length - 1]
+      const c1y = p1.y + (p2.y - p0.y) * f, c2y = p2.y - (p3.y - p1.y) * f
+      const t = (rx - p1.x) / (p2.x - p1.x || 1), mt = 1 - t
+      return mt * mt * mt * p1.y + 3 * mt * mt * t * c1y + 3 * mt * t * t * c2y + t * t * t * p2.y
     }
   }
-  return RIDGE[RIDGE.length - 1][1]
+  return P[P.length - 1].y
 }
-const fmtRatio = (r) => (r >= 10 ? String(Math.round(r)) : r.toFixed(1).replace('.', ','))
 
 // Pastille de comparaison "fun" (emoji + « soit … ×N »), mise en avant en bas de slide.
 function drawCompareBadge(ctx, cx, cy, c, acc, ink, alpha) {
@@ -391,41 +400,74 @@ function drawCompareBadge(ctx, cx, cy, c, acc, ink, alpha) {
 }
 
 function drawElevation(ctx, W, H, s, lt, acc, ink, a) {
-  const cx = W / 2
-  text(ctx, 'TU AS GRIMPÉ', cx, H * 0.15, { size: 40, weight: 600, font: BODY, color: ink.dim, align: 'center', alpha: a, spacing: 2 })
-  const pn = easeOut(clamp(lt / 1.4))
-  text(ctx, `${fmtInt(s.value * pn)} m`, cx, H * 0.27, { size: 132, weight: 700, color: ink.fg, align: 'center', alpha: a })
+  const cx = W / 2, dark = ink.fg === '#ffffff'
+  const left = W * 0.08, right = W * 0.92, aw = right - left
+  const base = H * 0.72, top = H * 0.42, span = base - top
+  const P = ELEV_CP.map(([xf, h]) => ({ x: left + aw * xf, y: base - h * span }))
+  const summitX = P[6].x, summitY = P[6].y
+  const rev = easeInOut(clamp((lt - 0.20) / 2.20)), revX = left + aw * rev
+  const pn = easeOut(clamp(lt / 2.35))
+  const glowA = easeOut(clamp(lt / 0.5))
 
-  // profil de montagne qui SE DESSINE de gauche à droite (remplissage dégradé + crête nette)
-  const rev = easeInOut(clamp((lt - 0.2) / 1.8))
-  const left = W * 0.06, right = W * 0.94, aw = right - left
-  const base = H * 0.76, top = H * 0.40, span = base - top
-  const revX = left + aw * rev
-  const yAt = (xf) => base - ridgeYAt(xf) * span
-  const N = 180
-  ctx.save(); ctx.globalAlpha = a * 0.92
-  ctx.beginPath(); ctx.moveTo(left, base)
-  for (let i = 0; i <= N; i++) {
-    const xf = i / N, x = left + aw * xf
-    if (x > revX) break
-    ctx.lineTo(x, yAt(xf))
-  }
-  ctx.lineTo(Math.min(revX, right), base); ctx.closePath()
-  ctx.fillStyle = accGrad(ctx, cx, base, cx, top, acc); ctx.fill()
-  ctx.globalAlpha = a; ctx.beginPath()
-  let started = false
-  for (let i = 0; i <= N; i++) {
-    const xf = i / N, x = left + aw * xf
-    if (x > revX) break
-    if (!started) { ctx.moveTo(x, yAt(xf)); started = true } else ctx.lineTo(x, yAt(xf))
-  }
-  ctx.strokeStyle = hexA('#ffffff', 0.9); ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke()
-  if (rev < 1) { // point lumineux à la pointe du tracé
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(revX, yAt(clamp((revX - left) / aw)), 9, 0, Math.PI * 2); ctx.fill()
-  }
+  // brume de sommet (atmosphère)
+  ctx.save(); ctx.globalAlpha = a * glowA
+  const glow = ctx.createRadialGradient(summitX, summitY + 40, 0, summitX, summitY + 40, H * 0.30)
+  glow.addColorStop(0, hexA(acc.from, dark ? 0.26 : 0.16)); glow.addColorStop(1, hexA(acc.from, 0))
+  ctx.fillStyle = glow; ctx.fillRect(summitX - 576, summitY - 536, 1152, 1152); ctx.restore()
+
+  // chaîne d'arrière-plan (profondeur / parallaxe)
+  const bpts = ELEV_CP.map(([xf, h]) => ({ x: left + aw * xf + 18, y: (H * 0.665) - h * (span * 0.5) }))
+  ctx.save(); ctx.globalAlpha = a * glowA
+  ctx.beginPath(); crestPath(ctx, bpts); ctx.lineTo(right + 18, base); ctx.lineTo(left + 18, base); ctx.closePath()
+  ctx.fillStyle = hexA(acc.from, dark ? 0.12 : 0.07); ctx.fill(); ctx.restore()
+
+  // silhouette fantôme (on voit toute la montagne tout de suite, puis elle se remplit)
+  ctx.save(); ctx.globalAlpha = a
+  ctx.beginPath(); crestPath(ctx, P); ctx.lineTo(right, base); ctx.lineTo(left, base); ctx.closePath()
+  ctx.fillStyle = hexA(ink.fg, dark ? 0.06 : 0.05); ctx.fill(); ctx.restore()
+
+  // remplissage + crête, RÉVÉLÉS par un clip qui grandit -> tracé lisse à tout instant
+  ctx.save()
+  ctx.beginPath(); ctx.rect(0, 0, revX, H); ctx.clip()
+  const fill = ctx.createLinearGradient(0, top, 0, base)
+  fill.addColorStop(0, hexA(acc.from, dark ? 0.52 : 0.42)); fill.addColorStop(0.55, hexA(acc.from, dark ? 0.20 : 0.15)); fill.addColorStop(1, hexA(acc.to, 0))
+  ctx.globalAlpha = a; ctx.beginPath(); crestPath(ctx, P); ctx.lineTo(right, base); ctx.lineTo(left, base); ctx.closePath(); ctx.fillStyle = fill; ctx.fill()
+  // ligne de flottaison lumineuse derrière la tête
+  const wl = ctx.createLinearGradient(revX - 40, 0, revX, 0)
+  wl.addColorStop(0, hexA('#ffffff', 0)); wl.addColorStop(1, hexA('#ffffff', dark ? 0.10 : 0.06))
+  ctx.fillStyle = wl; ctx.fillRect(revX - 40, top, 40, base - top)
+  // crête : dégradé accent + halo
+  ctx.beginPath(); crestPath(ctx, P)
+  ctx.strokeStyle = accGrad(ctx, left, 0, right, 0, acc); ctx.lineWidth = 6; ctx.lineJoin = 'round'; ctx.lineCap = 'round'
+  ctx.shadowColor = hexA(acc.to, 0.9); ctx.shadowBlur = 18; ctx.stroke(); ctx.shadowBlur = 0
   ctx.restore()
 
-  drawCompareBadge(ctx, cx, H * 0.90, s.comparison, acc, ink, a * clamp((lt - 1.3) / 0.7))
+  // névé au sommet (apparaît quand la tête l'a dépassé)
+  const capA = easeOut(clamp((revX - summitX) / 70))
+  if (capA > 0) {
+    ctx.save(); ctx.globalAlpha = a * capA
+    ctx.beginPath()
+    ctx.moveTo(summitX - 40, summitY + 56); ctx.lineTo(summitX, summitY + 6); ctx.lineTo(summitX + 40, summitY + 56)
+    ctx.quadraticCurveTo(summitX, summitY + 34, summitX - 40, summitY + 56); ctx.closePath()
+    ctx.fillStyle = hexA('#ffffff', dark ? 0.92 : 0.72); ctx.fill(); ctx.restore()
+  }
+
+  // tête du stylo (la pointe lumineuse qui trace la crête)
+  const headA = clamp((1 - rev) / 0.10)
+  if (headA > 0) {
+    const ty = crestYAtX(P, revX)
+    ctx.save(); ctx.globalAlpha = a * headA
+    ctx.shadowColor = hexA(acc.to, 1); ctx.shadowBlur = 26; ctx.fillStyle = '#fff'
+    ctx.beginPath(); ctx.arc(revX, ty, 10, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0
+    ctx.strokeStyle = acc.to; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(revX, ty, 10, 0, Math.PI * 2); ctx.stroke()
+    ctx.restore()
+  }
+
+  // titre + nombre (au-dessus de tout, nets)
+  text(ctx, 'TU AS GRIMPÉ', cx, H * 0.15, { size: 40, weight: 600, font: BODY, color: ink.dim, align: 'center', alpha: a, spacing: 2 })
+  text(ctx, `${fmtInt(s.value * pn)} m`, cx, H * 0.27, { size: 132, weight: 700, color: ink.fg, align: 'center', alpha: a })
+
+  drawCompareBadge(ctx, cx, H * 0.90, s.comparison, acc, ink, a * clamp((lt - 2.5) / 0.7))
 }
 
 function drawStreak(ctx, W, H, s, lt, acc, ink, a) {
