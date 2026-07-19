@@ -3,8 +3,7 @@
 
 import { trimRoute } from './polyline.js'
 import { posterRoutes } from './poster.js'
-
-const EVEREST_M = 8849
+import { pickComparison, DIST_REFS, ELEV_REFS } from './recapCompare.js'
 
 // Distances mensuelles (12 cases) pour une année, à partir de { 'YYYY-MM-DD': mètres }.
 export function monthlyDistances(daily = {}, year) {
@@ -33,7 +32,7 @@ export function buildRecap(summary, ctx = {}) {
   })
 
   if (summary.totalDistance > 0) {
-    slides.push({ kind: 'distance', value: summary.totalDistance, count: summary.count, activeDays: summary.activeDays })
+    slides.push({ kind: 'distance', value: summary.totalDistance, count: summary.count, activeDays: summary.activeDays, comparison: pickComparison(DIST_REFS, summary.totalDistance) })
   }
 
   const sports = (summary.byType || [])
@@ -73,7 +72,7 @@ export function buildRecap(summary, ctx = {}) {
   }
 
   if (summary.totalElevation > 500) {
-    slides.push({ kind: 'elevation', value: summary.totalElevation, everest: summary.totalElevation / EVEREST_M })
+    slides.push({ kind: 'elevation', value: summary.totalElevation, comparison: pickComparison(ELEV_REFS, summary.totalElevation) })
   }
 
   if (summary.activeDays > 0) {

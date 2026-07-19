@@ -188,24 +188,6 @@ function drawCover(ctx, W, H, s, lt, acc, ink, a) {
   text(ctx, s.sub, cx, H * 0.68, { size: 40, weight: 500, font: BODY, color: ink.dim, align: 'center', alpha: a * clamp((lt - 0.5) / 0.8) })
 }
 
-const EQUIV = [
-  { km: 150, txt: 'un aller-retour à la mer' },
-  { km: 400, txt: 'Paris → Lyon' },
-  { km: 800, txt: 'Paris → Marseille aller-retour' },
-  { km: 1500, txt: 'Paris → Barcelone' },
-  { km: 3000, txt: 'Paris → Moscou' },
-  { km: 5000, txt: 'la traversée des États-Unis' },
-  { km: 8000, txt: 'Paris → New York' },
-  { km: 12000, txt: 'Paris → Tokyo' },
-  { km: 20000, txt: 'la moitié du tour de la Terre' },
-  { km: 40075, txt: 'le tour complet de la Terre' },
-]
-function pickEquiv(km) {
-  let best = null
-  for (const e of EQUIV) if (km >= e.km) best = e
-  return best
-}
-
 function drawDistance(ctx, W, H, s, lt, acc, ink, a) {
   const cx = W / 2
   text(ctx, 'TU AS PARCOURU', cx, H * 0.3, { size: 40, weight: 600, font: BODY, color: ink.dim, align: 'center', alpha: a, spacing: 2 })
@@ -219,21 +201,8 @@ function drawDistance(ctx, W, H, s, lt, acc, ink, a) {
   ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = accGrad(ctx, cx - bw / 2, 0, cx + bw / 2, 0, acc)
   roundRect(ctx, cx - bw / 2, H * 0.585, bw, 12, 6); ctx.fill(); ctx.restore()
   text(ctx, `${fmtInt(s.count)} sorties · ${s.activeDays} jours actifs`, cx, H * 0.64, { size: 40, weight: 500, font: BODY, color: ink.dim, align: 'center', alpha: a * clamp((lt - 1.2) / 0.7) })
-  // équivalence géographique : arc pointillé A -> B
-  const eq = pickEquiv(kmTotal)
-  if (eq) {
-    const ai = a * clamp((lt - 1.3) / 0.9)
-    const y0 = H * 0.75, x0 = W * 0.3, x1 = W * 0.7, mid = (x0 + x1) / 2
-    ctx.save(); ctx.globalAlpha = ai
-    ctx.setLineDash([6, 10]); ctx.lineDashOffset = -lt * 60
-    ctx.strokeStyle = accGrad(ctx, x0, 0, x1, 0, acc); ctx.lineWidth = 4; ctx.lineCap = 'round'
-    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(mid, y0 - 66, x1, y0); ctx.stroke()
-    ctx.setLineDash([]); ctx.fillStyle = '#fff'
-    ctx.beginPath(); ctx.arc(x0, y0, 8, 0, Math.PI * 2); ctx.fill()
-    ctx.beginPath(); ctx.arc(x1, y0, 8, 0, Math.PI * 2); ctx.fill()
-    ctx.restore()
-    text(ctx, `soit ${eq.txt}`, cx, H * 0.82, { size: 44, weight: 600, font: BODY, color: ink.fg, align: 'center', alpha: a * clamp((lt - 1.7) / 0.7) })
-  }
+  // équivalence "fun", tirée au hasard et mise en avant
+  drawCompareBadge(ctx, cx, H * 0.8, s.comparison, acc, ink, a * clamp((lt - 1.3) / 0.8))
 }
 
 // Pictogrammes de sport dessinés en canvas (vectoriels -> nets et lisibles, contrairement aux emojis)
@@ -374,47 +343,77 @@ function drawRoute(ctx, W, H, s, lt, acc, ink, a) {
   text(ctx, `${km} km · ${fmtElev(s.elevation)} m D+`, cx, H * 0.84, { size: 42, weight: 500, font: BODY, color: ink.dim, align: 'center', alpha: a * info })
 }
 
+// Profil de crête (normalisé) : x fraction -> hauteur fraction (0 = base, 1 = plus haut sommet)
+const RIDGE = [
+  [0.00, 0.26], [0.09, 0.60], [0.17, 0.40], [0.28, 0.82],
+  [0.38, 0.54], [0.50, 1.00], [0.61, 0.60], [0.72, 0.86],
+  [0.83, 0.46], [0.92, 0.66], [1.00, 0.30],
+]
+function ridgeYAt(xf) {
+  for (let i = 1; i < RIDGE.length; i++) {
+    if (xf <= RIDGE[i][0]) {
+      const [x0, y0] = RIDGE[i - 1], [x1, y1] = RIDGE[i]
+      const k = (xf - x0) / (x1 - x0 || 1)
+      return y0 + (y1 - y0) * k
+    }
+  }
+  return RIDGE[RIDGE.length - 1][1]
+}
+const fmtRatio = (r) => (r >= 10 ? String(Math.round(r)) : r.toFixed(1).replace('.', ','))
+
+// Pastille de comparaison "fun" (emoji + « soit … ×N »), mise en avant en bas de slide.
+function drawCompareBadge(ctx, cx, cy, c, acc, ink, alpha) {
+  if (!c || alpha <= 0) return
+  const txt = `${c.emoji ? c.emoji + '  ' : ''}soit ${c.name} ×${fmtRatio(c.ratio)}`
+  ctx.save(); ctx.globalAlpha = alpha
+  ctx.font = `600 46px "${BODY}"`
+  const tw = ctx.measureText(txt).width
+  const h = 88, w = tw + 72
+  ctx.fillStyle = ink.track
+  roundRect(ctx, cx - w / 2, cy - h / 2, w, h, h / 2); ctx.fill()
+  ctx.strokeStyle = accGrad(ctx, cx - w / 2, 0, cx + w / 2, 0, acc); ctx.lineWidth = 3
+  roundRect(ctx, cx - w / 2, cy - h / 2, w, h, h / 2); ctx.stroke()
+  ctx.fillStyle = ink.fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText(txt, cx, cy + 2)
+  ctx.restore()
+}
+
 function drawElevation(ctx, W, H, s, lt, acc, ink, a) {
   const cx = W / 2
-  // montagne qui se remplit
-  const p = easeOut(clamp(lt / 1.6))
-  const mtnTop = H * 0.42, mtnBase = H * 0.72, mtnHalf = W * 0.26
-  ctx.save()
-  ctx.beginPath()
-  ctx.moveTo(cx, mtnTop); ctx.lineTo(cx + mtnHalf, mtnBase); ctx.lineTo(cx - mtnHalf, mtnBase); ctx.closePath()
-  ctx.clip()
-  ctx.globalAlpha = a
-  const fillTop = mtnBase - (mtnBase - mtnTop) * p
-  ctx.fillStyle = accGrad(ctx, cx, mtnBase, cx, mtnTop, acc)
-  ctx.fillRect(cx - mtnHalf, fillTop, mtnHalf * 2, mtnBase - fillTop)
-  ctx.fillStyle = ink.track
-  ctx.fillRect(cx - mtnHalf, mtnTop, mtnHalf * 2, fillTop - mtnTop)
-  ctx.restore()
-  ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = hexA('#ffffff', 0.25); ctx.lineWidth = 3
-  ctx.beginPath(); ctx.moveTo(cx, mtnTop); ctx.lineTo(cx + mtnHalf, mtnBase); ctx.lineTo(cx - mtnHalf, mtnBase); ctx.closePath(); ctx.stroke(); ctx.restore()
+  text(ctx, 'TU AS GRIMPÉ', cx, H * 0.15, { size: 40, weight: 600, font: BODY, color: ink.dim, align: 'center', alpha: a, spacing: 2 })
+  const pn = easeOut(clamp(lt / 1.4))
+  text(ctx, `${fmtInt(s.value * pn)} m`, cx, H * 0.27, { size: 132, weight: 700, color: ink.fg, align: 'center', alpha: a })
 
-  text(ctx, 'TU AS GRIMPÉ', cx, H * 0.2, { size: 40, weight: 600, font: BODY, color: ink.dim, align: 'center', alpha: a, spacing: 2 })
-  const shown = fmtInt(s.value * p)
-  text(ctx, `${shown} m`, cx, H * 0.32, { size: 130, weight: 700, color: ink.fg, align: 'center', alpha: a })
-
-  // rangée de mini-Everest qui s'allument (on visualise le ×N)
-  const full = Math.floor(s.everest)
-  const total = Math.min(full, 12)
-  if (total >= 1) {
-    const tw = 40, th = 50, gap = 14
-    const rowW = total * tw + (total - 1) * gap
-    const sx = cx - rowW / 2, sy = H * 0.86
-    const lit = full * easeOut(clamp((lt - 0.6) / 1.4))
-    ctx.save(); ctx.globalAlpha = a
-    for (let i = 0; i < total; i++) {
-      const x = sx + i * (tw + gap)
-      ctx.beginPath(); ctx.moveTo(x + tw / 2, sy - th); ctx.lineTo(x + tw, sy); ctx.lineTo(x, sy); ctx.closePath()
-      if (i < lit) { ctx.fillStyle = accGrad(ctx, x, sy - th, x, sy, acc); ctx.fill() }
-      else { ctx.strokeStyle = ink.track; ctx.lineWidth = 2.5; ctx.stroke() }
-    }
-    ctx.restore()
+  // profil de montagne qui SE DESSINE de gauche à droite (remplissage dégradé + crête nette)
+  const rev = easeInOut(clamp((lt - 0.2) / 1.8))
+  const left = W * 0.06, right = W * 0.94, aw = right - left
+  const base = H * 0.76, top = H * 0.40, span = base - top
+  const revX = left + aw * rev
+  const yAt = (xf) => base - ridgeYAt(xf) * span
+  const N = 180
+  ctx.save(); ctx.globalAlpha = a * 0.92
+  ctx.beginPath(); ctx.moveTo(left, base)
+  for (let i = 0; i <= N; i++) {
+    const xf = i / N, x = left + aw * xf
+    if (x > revX) break
+    ctx.lineTo(x, yAt(xf))
   }
-  text(ctx, `soit l'Everest ×${s.everest.toFixed(1).replace('.', ',')}`, cx, H * 0.93, { size: 46, weight: 600, font: BODY, color: ink.fg, align: 'center', alpha: a * clamp((lt - 1.2) / 0.8) })
+  ctx.lineTo(Math.min(revX, right), base); ctx.closePath()
+  ctx.fillStyle = accGrad(ctx, cx, base, cx, top, acc); ctx.fill()
+  ctx.globalAlpha = a; ctx.beginPath()
+  let started = false
+  for (let i = 0; i <= N; i++) {
+    const xf = i / N, x = left + aw * xf
+    if (x > revX) break
+    if (!started) { ctx.moveTo(x, yAt(xf)); started = true } else ctx.lineTo(x, yAt(xf))
+  }
+  ctx.strokeStyle = hexA('#ffffff', 0.9); ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke()
+  if (rev < 1) { // point lumineux à la pointe du tracé
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(revX, yAt(clamp((revX - left) / aw)), 9, 0, Math.PI * 2); ctx.fill()
+  }
+  ctx.restore()
+
+  drawCompareBadge(ctx, cx, H * 0.90, s.comparison, acc, ink, a * clamp((lt - 1.3) / 0.7))
 }
 
 function drawStreak(ctx, W, H, s, lt, acc, ink, a) {
