@@ -6,7 +6,7 @@ import PosterCard from './PosterCard.jsx'
 import RecapPlayer from './RecapPlayer.jsx'
 import { aggregate, personalBestIds } from '../lib/aggregate.js'
 import { weekdayDistances } from '../lib/selectors.js'
-import { buildRecap } from '../lib/recap.js'
+import { buildRecap, buildWeeklyRecap } from '../lib/recap.js'
 import { buildSnapshot, shareUrl } from '../lib/share.js'
 import { monthHeatmap, yearHeatmap } from '../lib/heatmap.js'
 import { BACKGROUNDS, ACCENTS } from '../data/backgrounds.js'
@@ -84,13 +84,15 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
     return per.period === 'year' ? yearHeatmap(per.year, daily) : monthHeatmap(per.month.year, per.month.month, daily)
   }, [per.period, per.year, per.month, summary])
 
-  // slides du récap vidéo (façon story animée)
+  // slides du récap vidéo (façon story animée) — variante hebdo pour la semaine
   const recapSlides = useMemo(
-    () => buildRecap(summary, {
-      period: per.period, year: per.year, month: per.month.month, periodLabel: per.periodLabel, athleteName, privacy: opt.privacy,
-      comparison: cmp.comparison, typeCompare: cmp.typeCompare, compareMode: opt.compareMode, heatmap, activities: filter.filteredActivities,
-    }),
-    [summary, per.period, per.year, per.month, per.periodLabel, athleteName, opt.privacy, cmp.comparison, cmp.typeCompare, opt.compareMode, heatmap, filter.filteredActivities],
+    () => (per.period === 'week'
+      ? buildWeeklyRecap(summary, { periodLabel: per.periodLabel, athleteName, privacy: opt.privacy, perDay: weekPerDay, event: weekEvent, goal: weekGoalKm })
+      : buildRecap(summary, {
+        period: per.period, year: per.year, month: per.month.month, periodLabel: per.periodLabel, athleteName, privacy: opt.privacy,
+        comparison: cmp.comparison, typeCompare: cmp.typeCompare, compareMode: opt.compareMode, heatmap, activities: filter.filteredActivities,
+      })),
+    [summary, per.period, per.year, per.month, per.periodLabel, athleteName, opt.privacy, cmp.comparison, cmp.typeCompare, opt.compareMode, heatmap, filter.filteredActivities, weekPerDay, weekEvent, weekGoalKm],
   )
 
   // changer de semaine/mois/année/période réinitialise le filtre de familles
@@ -156,7 +158,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
         onExport={exp.handleExport} exporting={exp.exporting} onShare={exp.handleShare} canShare={canShare}
         onCopy={exp.handleCopy} canCopy={canCopy}
         onShareLink={handleShareLink}
-        onPlayRecap={per.period !== 'week' && recapSlides.length > 1 ? () => setShowRecap(true) : null}
+        onPlayRecap={recapSlides.length > 1 ? () => setShowRecap(true) : null}
       />
 
       <div className="stage-wrap" ref={exp.wrapRef}>

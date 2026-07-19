@@ -4,6 +4,8 @@
 import { trimRoute } from './polyline.js'
 import { posterRoutes } from './poster.js'
 import { pickComparison, DIST_REFS, ELEV_REFS } from './recapCompare.js'
+import { daysUntil } from './date.js'
+import { dayLabel } from './format.js'
 
 // Distances mensuelles (12 cases) pour une année, à partir de { 'YYYY-MM-DD': mètres }.
 export function monthlyDistances(daily = {}, year) {
@@ -100,6 +102,69 @@ export function buildRecap(summary, ctx = {}) {
       streak: summary.streak,
     },
     sports: (summary.byType || []).filter((t) => t.distance > 0).slice(0, 4).map((t) => ({ label: t.label, color: t.color })),
+  })
+
+  return slides
+}
+
+// Récap vidéo HEBDOMADAIRE : slides adaptés à la semaine (graph des jours + objectif).
+export function buildWeeklyRecap(summary, ctx = {}) {
+  const { periodLabel = '', athleteName = null, privacy = true, perDay = [], event = null, goal = null } = ctx
+  const slides = []
+  if (!summary || summary.count === 0) return slides
+
+  slides.push({
+    kind: 'cover',
+    title: athleteName ? `La semaine de ${athleteName}` : 'Ta semaine',
+    big: periodLabel,
+    sub: 'Ta semaine en mouvement',
+  })
+
+  if (summary.totalDistance > 0) {
+    slides.push({ kind: 'distance', value: summary.totalDistance, count: summary.count, activeDays: summary.activeDays, comparison: pickComparison(DIST_REFS, summary.totalDistance) })
+  }
+
+  slides.push({ kind: 'weekdays', perDay, total: summary.totalDistance })
+
+  if (summary.totalElevation > 200) {
+    slides.push({ kind: 'elevation', value: summary.totalElevation, comparison: pickComparison(ELEV_REFS, summary.totalElevation) })
+  }
+
+  const goalKm = goal > 0 ? goal : null
+  const ev = event && (event.name || event.date)
+    ? { name: event.name || null, jx: event.date ? daysUntil(event.date) : null, dateLabel: event.date ? `${dayLabel(event.date)} ${String(event.date).slice(0, 4)}` : null }
+    : null
+  if (ev || goalKm) {
+    slides.push({ kind: 'objective', event: ev, goal: goalKm, done: summary.totalDistance })
+  }
+
+  const sports = (summary.byType || []).filter((t) => t.distance > 0).slice(0, 4)
+    .map((t) => ({ key: t.key, label: t.label, color: t.color, distance: t.distance, count: t.count }))
+  if (sports.length >= 2) {
+    const dom = summary.byType?.[0]
+    slides.push({ kind: 'sports', sports, dominant: summary.dominantFamily, dominantLabel: dom?.label || null, max: Math.max(...sports.map((s) => s.distance)) })
+  }
+
+  const longest = summary.records?.longest?.activity
+  if (longest?.routePoints?.length > 1) {
+    const pts = privacy ? trimRoute(longest.routePoints, 300) || longest.routePoints : longest.routePoints
+    slides.push({ kind: 'route', points: pts, name: longest.name, distance: longest.distance, elevation: longest.total_elevation_gain })
+  }
+
+  slides.push({
+    kind: 'final',
+    title: athleteName || 'Ta semaine',
+    periodLabel,
+    stats: {
+      distance: summary.totalDistance,
+      count: summary.count,
+      elevation: summary.totalElevation,
+      elevationLoss: summary.totalElevationLoss,
+      time: summary.totalMovingTime,
+      activeDays: summary.activeDays,
+      streak: summary.streak,
+    },
+    sports: sports.map((t) => ({ label: t.label, color: t.color })),
   })
 
   return slides

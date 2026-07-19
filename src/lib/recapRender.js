@@ -12,7 +12,7 @@ const BODY = 'Inter' // labels, sous-titres
 const HERO = 'Anton' // police d'affichage massive de la vidéo (chiffres, titres) — fort caractère
 
 // durée de chaque slide (s) — rythme posé, façon story (~32 s au total pour un bilan annuel)
-const DUR = { cover: 2.8, distance: 3.4, sports: 3.3, compare: 3.2, months: 3.2, route: 3.8, elevation: 3.3, streak: 3.6, poster: 3.3, final: 3.6 }
+const DUR = { cover: 2.8, distance: 3.4, sports: 3.3, compare: 3.2, months: 3.2, route: 3.8, elevation: 3.3, streak: 3.6, poster: 3.3, weekdays: 3.4, objective: 3.6, final: 3.6 }
 
 export function timeline(slides) {
   let t = 0
@@ -570,6 +570,64 @@ function drawPoster(ctx, W, H, s, lt, acc, ink, a) {
   text(ctx, `${fmtInt(s.count || routes.length)} sorties, une seule image`, cx, H * 0.9, { size: 42, weight: 500, font: BODY, color: ink.dim, align: 'center', alpha: a * clamp((lt - 1.4) / 0.7) })
 }
 
+const WK_DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
+function drawWeekdays(ctx, W, H, s, lt, acc, ink, a) {
+  const cx = W / 2
+  text(ctx, 'TA SEMAINE, JOUR PAR JOUR', cx, H * 0.16, { size: 40, weight: 600, font: BODY, color: ink.dim, align: 'center', alpha: a, spacing: 1 })
+  const per = s.perDay || []
+  const week = Array.from({ length: 7 }, (_, i) => per[i] || 0)
+  const max = Math.max(...week, 1)
+  let peak = -1
+  for (let i = 0; i < 7; i++) if (week[i] > 0 && week[i] >= max && peak < 0) peak = i
+  const areaW = W * 0.8, gap = W * 0.022, bw = (areaW - gap * 6) / 7, left = cx - areaW / 2
+  const base = H * 0.66, maxH = H * 0.32
+  const grow = easeOut(clamp((lt - 0.2) / 1.2))
+  for (let i = 0; i < 7; i++) {
+    const x = left + i * (bw + gap)
+    if (week[i] > 0) {
+      const hh = Math.max(H * 0.02, (week[i] / max) * maxH) * grow
+      ctx.save(); ctx.globalAlpha = a
+      ctx.fillStyle = accGrad(ctx, x, base - hh, x, base, acc)
+      roundRect(ctx, x, base - hh, bw, hh, Math.min(bw * 0.32, 18)); ctx.fill(); ctx.restore()
+      if (i === peak) text(ctx, `🔥 ${(week[i] / 1000).toFixed(1).replace('.', ',')}`, x + bw / 2, base - hh - 24, { size: 34, weight: 700, color: ink.fg, align: 'center', alpha: a * clamp((grow - 0.5) / 0.4) })
+    } else {
+      ctx.save(); ctx.globalAlpha = a * 0.5; ctx.fillStyle = ink.track
+      ctx.beginPath(); ctx.arc(x + bw / 2, base - 14, 9, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+    }
+    text(ctx, WK_DAYS[i], x + bw / 2, base + 56, { size: 40, weight: 600, font: BODY, color: week[i] > 0 ? ink.fg : ink.dim, align: 'center', alpha: a })
+  }
+  const totKm = (s.total || week.reduce((v, w) => v + w, 0)) / 1000
+  text(ctx, `${totKm.toFixed(1).replace('.', ',')} km cette semaine`, cx, H * 0.82, { size: 44, weight: 600, font: BODY, color: ink.dim, align: 'center', alpha: a * clamp((lt - 0.8) / 0.6) })
+}
+
+function drawObjective(ctx, W, H, s, lt, acc, ink, a) {
+  const cx = W / 2
+  text(ctx, 'TON OBJECTIF', cx, H * 0.16, { size: 40, weight: 600, font: BODY, color: ink.dim, align: 'center', alpha: a, spacing: 2 })
+  const ev = s.event
+  const hasGoal = s.goal > 0
+  if (ev) {
+    if (ev.name) text(ctx, truncate(ev.name, 22), cx, H * 0.30, { size: 74, weight: 700, color: ink.fg, align: 'center', alpha: a * clamp(lt / 0.5) })
+    if (ev.jx != null) {
+      const j = ev.jx > 0 ? `J-${ev.jx}` : ev.jx === 0 ? 'Jour J' : `J+${-ev.jx}`
+      text(ctx, j, cx, H * 0.44, { size: 150, weight: 700, color: ink.fg, align: 'center', alpha: a * clamp((lt - 0.2) / 0.5) })
+      if (ev.dateLabel) text(ctx, ev.dateLabel, cx, H * 0.50, { size: 42, weight: 500, font: BODY, color: ink.dim, align: 'center', alpha: a * clamp((lt - 0.3) / 0.5) })
+    }
+  }
+  if (hasGoal) {
+    const gy = ev ? H * 0.66 : H * 0.42
+    const doneKm = (s.done || 0) / 1000, pct = Math.min(1, doneKm / s.goal)
+    const gp = easeOut(clamp((lt - 0.4) / 1.0))
+    text(ctx, `${doneKm.toFixed(1).replace('.', ',')} / ${s.goal} km`, cx, gy, { size: 66, weight: 700, color: ink.fg, align: 'center', alpha: a * clamp((lt - 0.3) / 0.5) })
+    const bw = W * 0.7, bx = cx - bw / 2, by = gy + 44
+    ctx.save(); ctx.globalAlpha = a
+    ctx.fillStyle = ink.track; roundRect(ctx, bx, by, bw, 24, 12); ctx.fill()
+    ctx.fillStyle = accGrad(ctx, bx, 0, bx + bw, 0, acc); roundRect(ctx, bx, by, Math.max(24, bw * pct * gp), 24, 12); ctx.fill()
+    ctx.restore()
+    const rem = Math.max(0, s.goal - doneKm)
+    text(ctx, doneKm >= s.goal ? 'Objectif atteint 🎉' : `encore ${rem.toFixed(1).replace('.', ',')} km`, cx, by + 70, { size: 44, weight: 600, font: BODY, color: doneKm >= s.goal ? ink.fg : ink.dim, align: 'center', alpha: a * clamp((lt - 0.6) / 0.5) })
+  }
+}
+
 function drawFinal(ctx, W, H, s, lt, acc, ink, a) {
   const cx = W / 2
   const st = s.stats
@@ -651,7 +709,8 @@ function monthName(m) {
 
 const DRAW = {
   cover: drawCover, distance: drawDistance, sports: drawSports, compare: drawCompare, months: drawMonths,
-  route: drawRoute, elevation: drawElevation, streak: drawStreak, poster: drawPoster, final: drawFinal,
+  route: drawRoute, elevation: drawElevation, streak: drawStreak, poster: drawPoster,
+  weekdays: drawWeekdays, objective: drawObjective, final: drawFinal,
 }
 
 // Dessine la frame au temps `t`. `opts`: { W, H, acc, theme, bg }.
@@ -667,7 +726,7 @@ export function drawFrame(ctx, tl, t, opts) {
   const isLast = idx === tl.items.length - 1
   const lt = tt - item.start
   // le fond (et ses courbes de niveau) converge vers le "point chaud" de la slide
-  const FOCUS_Y = { cover: 0.5, distance: 0.5, sports: 0.4, compare: 0.46, months: 0.44, route: 0.42, elevation: 0.44, streak: 0.32, poster: 0.5, final: 0.5 }
+  const FOCUS_Y = { cover: 0.5, distance: 0.5, sports: 0.4, compare: 0.46, months: 0.44, route: 0.42, elevation: 0.44, streak: 0.32, poster: 0.5, weekdays: 0.5, objective: 0.44, final: 0.5 }
   drawBg(ctx, W, H, bg, acc, t, theme, { x: W / 2, y: (FOCUS_Y[item.slide.kind] ?? 0.42) * H })
   const a = slideAlpha(lt, item.dur, !isLast) // la dernière slide ne se fond pas en sortie
   const fn = DRAW[item.slide.kind]
