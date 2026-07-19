@@ -94,8 +94,12 @@ export function buildRecap(summary, ctx = {}) {
       distance: summary.totalDistance,
       count: summary.count,
       elevation: summary.totalElevation,
+      elevationLoss: summary.totalElevationLoss,
+      time: summary.totalMovingTime,
       activeDays: summary.activeDays,
+      streak: summary.streak,
     },
+    sports: (summary.byType || []).filter((t) => t.distance > 0).slice(0, 4).map((t) => ({ label: t.label, color: t.color })),
   })
 
   return slides

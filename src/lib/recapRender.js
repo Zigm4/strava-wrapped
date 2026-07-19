@@ -2,7 +2,7 @@
 // pilotée par un temps `t` (secondes). Le MÊME rendu sert à la lecture à l'écran
 // (requestAnimationFrame) et à l'export vidéo (frame par frame) -> ce qu'on voit = ce qu'on exporte.
 
-import { fmtElev, fmtInt } from './format.js'
+import { fmtElev, fmtInt, fmtHours } from './format.js'
 import { normalizeRoutes } from './polyline.js'
 import { monthShort } from './format.js'
 import { gridLayout } from './poster.js'
@@ -318,11 +318,18 @@ function drawRoute(ctx, W, H, s, lt, acc, ink, a) {
   const oy = H * 0.26
   const norm = normalizeRoutes([s.points], size, size, size * 0.1)[0]
   if (norm && norm.length > 1) {
+    // tracé "fantôme" : le parcours complet, très discret, sous la trace animée
+    ctx.save(); ctx.globalAlpha = a * 0.14
+    ctx.strokeStyle = ink.fg; ctx.lineWidth = Math.max(3, size * 0.006); ctx.lineJoin = 'round'; ctx.lineCap = 'round'
+    ctx.beginPath()
+    norm.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(ox + px, oy + py) : ctx.lineTo(ox + px, oy + py)))
+    ctx.stroke(); ctx.restore()
+    // trace qui se dessine par-dessus, tête lumineuse
     const frac = easeInOut(clamp(lt / 2.2))
     const n = Math.max(2, Math.floor(norm.length * frac))
     ctx.save(); ctx.globalAlpha = a
     ctx.strokeStyle = accGrad(ctx, ox, oy, ox + size, oy + size, acc)
-    ctx.lineWidth = Math.max(4, size * 0.009)
+    ctx.lineWidth = Math.max(5, size * 0.011)
     ctx.lineJoin = 'round'; ctx.lineCap = 'round'
     ctx.beginPath()
     for (let i = 0; i < n; i++) {
@@ -331,10 +338,15 @@ function drawRoute(ctx, W, H, s, lt, acc, ink, a) {
       else ctx.lineTo(ox + px, oy + py)
     }
     ctx.stroke()
-    // point de tête
+    // point de départ
+    const start = norm[0]
+    ctx.fillStyle = acc.from
+    ctx.beginPath(); ctx.arc(ox + start[0], oy + start[1], Math.max(6, size * 0.012), 0, Math.PI * 2); ctx.fill()
+    // tête lumineuse (halo) qui trace le parcours
     const head = norm[n - 1]
+    ctx.shadowColor = acc.to; ctx.shadowBlur = 22
     ctx.fillStyle = '#fff'
-    ctx.beginPath(); ctx.arc(ox + head[0], oy + head[1], Math.max(5, size * 0.013), 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.arc(ox + head[0], oy + head[1], Math.max(7, size * 0.016), 0, Math.PI * 2); ctx.fill()
     ctx.restore()
   }
   const info = clamp((lt - 1.6) / 0.8)
@@ -560,40 +572,71 @@ function drawPoster(ctx, W, H, s, lt, acc, ink, a) {
 
 function drawFinal(ctx, W, H, s, lt, acc, ink, a) {
   const cx = W / 2
-  text(ctx, s.periodLabel, cx, H * 0.2, { size: 120, weight: 700, color: ink.fg, align: 'center', alpha: a })
-  const stats = [
-    [(s.stats.distance / 1000) >= 100 ? fmtInt(s.stats.distance / 1000) : (s.stats.distance / 1000).toFixed(1).replace('.', ','), 'km'],
-    [fmtInt(s.stats.count), 'sorties'],
-    [fmtElev(s.stats.elevation), 'm D+'],
-    [String(s.stats.activeDays), 'jours actifs'],
+  const st = s.stats
+  // en-tête : identité + période
+  text(ctx, 'TON RÉCAP', cx, H * 0.095, { size: 34, weight: 600, font: BODY, color: ink.dim, align: 'center', alpha: a * clamp(lt / 0.5), spacing: 3 })
+  text(ctx, s.title, cx, H * 0.16, { size: 96, weight: 700, color: ink.fg, align: 'center', alpha: a * clamp(lt / 0.5) })
+  text(ctx, s.periodLabel, cx, H * 0.205, { size: 44, weight: 500, font: BODY, color: ink.dim, align: 'center', alpha: a * clamp((lt - 0.12) / 0.5) })
+
+  // distance héro
+  const kmv = st.distance / 1000
+  const kmS = kmv >= 100 ? fmtInt(kmv) : kmv.toFixed(1).replace('.', ',')
+  const hp = clamp((lt - 0.2) / 0.5)
+  text(ctx, kmS, cx, H * 0.315, { size: 150, weight: 700, color: ink.fg, align: 'center', alpha: a * hp })
+  text(ctx, 'km parcourus', cx, H * 0.36, { size: 40, weight: 500, font: BODY, color: ink.dim, align: 'center', alpha: a * hp })
+  const bw = 300 * clamp((lt - 0.3) / 0.5)
+  if (bw > 2) { ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = accGrad(ctx, cx - bw / 2, 0, cx + bw / 2, 0, acc); roundRect(ctx, cx - bw / 2, H * 0.385, bw, 8, 4); ctx.fill(); ctx.restore() }
+
+  // grille de stats (3 x 2)
+  const cells = [
+    [fmtInt(st.count), 'sorties'],
+    [fmtElev(st.elevation), 'm D+'],
+    [fmtElev(st.elevationLoss || 0), 'm D−'],
+    [fmtHours(st.time || 0), 'h de sport'],
+    [String(st.activeDays), 'jours actifs'],
+    [String(st.streak || 0), 'j de série'],
   ]
-  stats.forEach((st, i) => {
-    const y = H * 0.34 + i * H * 0.115
-    const raw = clamp((lt - 0.3 - i * 0.18) / 0.6)
-    const ap = easeOutBack(raw)
-    const dir = i % 2 ? 1 : -1
-    const ox = dir * (1 - clamp(raw)) * 130
-    ctx.save(); ctx.globalAlpha = a * clamp(raw / 0.4); ctx.translate(ox, 0); ctx.textAlign = 'center'
-    ctx.fillStyle = ink.fg; ctx.font = `400 96px "${HERO}"`
-    ctx.fillText(st[0], cx - 40, y)
-    ctx.fillStyle = ink.dim; ctx.font = `500 44px "${BODY}"`
-    ctx.textAlign = 'left'
-    ctx.fillText(' ' + st[1], cx + measure(ctx, st[0], 96, HERO) / 2 - 40, y)
-    ctx.restore()
-    // trait signature accent sous la stat
-    const uw = 240 * clamp((lt - 0.45 - i * 0.18) / 0.6)
-    if (uw > 2) {
-      ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = accGrad(ctx, cx - uw / 2 + ox, 0, cx + uw / 2 + ox, 0, acc)
-      roundRect(ctx, cx - uw / 2 + ox, y + 18, uw, 5, 3); ctx.fill(); ctx.restore()
-    }
+  const gx = [W * 0.26, W * 0.5, W * 0.74], gy = [H * 0.475, H * 0.575]
+  cells.forEach((c, i) => {
+    const ap = clamp((lt - 0.4 - i * 0.05) / 0.5)
+    if (ap <= 0) return
+    const x = gx[i % 3], y = gy[Math.floor(i / 3)]
+    text(ctx, c[0], x, y, { size: 66, weight: 700, color: ink.fg, align: 'center', alpha: a * ap })
+    text(ctx, c[1], x, y + 42, { size: 30, weight: 500, font: BODY, color: ink.dim, align: 'center', alpha: a * ap })
   })
-  const bp = clamp((lt - 1.4) / 0.8)
-  text(ctx, 'Crée le tien avec', cx, H * 0.88, { size: 40, weight: 500, font: BODY, color: ink.dim, align: 'center', alpha: a * bp })
-  ctx.save(); ctx.globalAlpha = a * bp; ctx.textAlign = 'center'
+
+  // pastilles de sport (point coloré + libellé)
+  const sports = s.sports || []
+  if (sports.length) {
+    const py = H * 0.68, pillH = 66
+    ctx.font = `600 34px "${BODY}"`
+    const widths = sports.map((sp) => ctx.measureText(sp.label).width + 78)
+    const gap = 16
+    const total = widths.reduce((v, w) => v + w, 0) + gap * (sports.length - 1)
+    let x = cx - total / 2
+    sports.forEach((sp, i) => {
+      const ap = clamp((lt - 0.75 - i * 0.08) / 0.5)
+      const w = widths[i]
+      if (ap > 0) {
+        ctx.save(); ctx.globalAlpha = a * ap
+        ctx.fillStyle = ink.track; roundRect(ctx, x, py - pillH / 2, w, pillH, pillH / 2); ctx.fill()
+        ctx.fillStyle = sp.color; ctx.beginPath(); ctx.arc(x + 36, py, 12, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = ink.fg; ctx.font = `600 34px "${BODY}"`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+        ctx.fillText(sp.label, x + 60, py + 1)
+        ctx.restore()
+      }
+      x += w + gap
+    })
+  }
+
+  // signature
+  const bp = clamp((lt - 1.5) / 0.7)
+  text(ctx, 'Crée le tien avec', cx, H * 0.885, { size: 38, weight: 500, font: BODY, color: ink.dim, align: 'center', alpha: a * bp })
+  ctx.save(); ctx.globalAlpha = a * bp; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'
   ctx.font = `700 64px "${DISP}"`; ctx.fillStyle = ink.fg
-  ctx.fillText('re', cx - measure(ctx, 'wind', 64, DISP) / 2 - 4, H * 0.93)
+  ctx.fillText('re', cx - measure(ctx, 'wind', 64, DISP) / 2 - 4, H * 0.925)
   ctx.fillStyle = acc.from
-  ctx.fillText('wind', cx + measure(ctx, 're', 64, DISP) / 2 + 4, H * 0.93)
+  ctx.fillText('wind', cx + measure(ctx, 're', 64, DISP) / 2 + 4, H * 0.925)
   ctx.restore()
 }
 
@@ -628,5 +671,16 @@ export function drawFrame(ctx, tl, t, opts) {
   drawBg(ctx, W, H, bg, acc, t, theme, { x: W / 2, y: (FOCUS_Y[item.slide.kind] ?? 0.42) * H })
   const a = slideAlpha(lt, item.dur, !isLast) // la dernière slide ne se fond pas en sortie
   const fn = DRAW[item.slide.kind]
-  if (fn) fn(ctx, W, H, item.slide, lt, acc, ink, a)
+  if (fn) {
+    // transition : le CONTENU monte + zoome à l'entrée, dérive vers le haut à la sortie
+    // (au-dessus d'un fond stable) — plus vivant qu'un simple fondu.
+    const enter = easeOut(clamp(lt / 0.45))
+    const exit = isLast ? 1 : easeOut(clamp((item.dur - lt) / 0.35))
+    const ty = (1 - enter) * 44 - (1 - exit) * 36
+    const sc = 1 - (1 - enter) * 0.04 - (1 - exit) * 0.02
+    ctx.save()
+    ctx.translate(W / 2, H / 2); ctx.scale(sc, sc); ctx.translate(-W / 2, -H / 2 + ty)
+    fn(ctx, W, H, item.slide, lt, acc, ink, a)
+    ctx.restore()
+  }
 }
