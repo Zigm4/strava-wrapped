@@ -37,6 +37,7 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
   const playingRef = useRef(true)
   const rafRef = useRef(0)
   const aliveRef = useRef(false) // partagé (résiste au double-montage StrictMode en dev)
+  const lastDrawRef = useRef(0) // horodatage du dernier dessin (throttle ~30 fps -> moins de chauffe)
   const ctrlRef = useRef(null) // { startLoop, stopLoop, draw } fournis par l'effet de rendu
   const holdRef = useRef({ timer: 0, held: false, x: 0 })
   const exportingRef = useRef(false) // lu par le handler clavier (deps [], donc l'état serait périmé)
@@ -128,7 +129,9 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
         draw(); setEnded(true)
         return // fin : on arrête la boucle (plus aucun dessin -> plus de chauffe)
       }
-      draw()
+      // dessin bridé à ~30 fps (le temps avance quand même en continu -> lecture fluide,
+      // mais 2x moins de rendus canvas -> moins de charge/chauffe)
+      if (now - lastDrawRef.current >= 32) { draw(); lastDrawRef.current = now }
       rafRef.current = requestAnimationFrame(tick)
     }
     const startLoop = () => {
@@ -137,6 +140,7 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
       playingRef.current = true
       baseRef.current = tRef.current
       startRef.current = performance.now()
+      lastDrawRef.current = 0
       rafRef.current = requestAnimationFrame(tick)
     }
     const stopLoop = () => {

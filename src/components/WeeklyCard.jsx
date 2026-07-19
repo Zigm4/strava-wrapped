@@ -139,17 +139,20 @@ const WeeklyCard = forwardRef(function WeeklyCard(
           <motion.div className="wk-graph" variants={item}>
             <div className="sec-label">Ta semaine, jour par jour 📅</div>
             <div className="wk-bars">
-              {DAYS.map((dd, i) => (
-                <div className={`wk-col ${i === todayIdx ? 'is-today' : ''}`} key={i}>
-                  <span className={`wk-km ${week[i] > 0 ? '' : 'rest'}`}>{dayTag(i)}</span>
-                  <div className="wk-track">
-                    {week[i] > 0
-                      ? <div className={`wk-bar ${i === peakIdx ? 'peak' : ''}`} style={{ height: `${Math.max(8, (week[i] / maxDay) * 100)}%` }} />
-                      : <span className="wk-dot" />}
+              {DAYS.map((dd, i) => {
+                const pct = Math.max(8, (week[i] / maxDay) * 84) // plafonné pour laisser la place au libellé au-dessus
+                return (
+                  <div className={`wk-col ${i === todayIdx ? 'is-today' : ''}`} key={i}>
+                    <div className="wk-track">
+                      {week[i] > 0
+                        ? <div className={`wk-bar ${i === peakIdx ? 'peak' : ''}`} style={{ height: `${pct}%` }} />
+                        : <span className="wk-dot" />}
+                      <span className={`wk-km ${week[i] > 0 ? '' : 'rest'}`} style={{ bottom: week[i] > 0 ? `calc(${pct}% + 12px)` : '30px' }}>{dayTag(i)}</span>
+                    </div>
+                    <div className={`wk-day ${week[i] > 0 ? 'on' : ''}`}>{dd}</div>
                   </div>
-                  <div className={`wk-day ${week[i] > 0 ? 'on' : ''}`}>{dd}</div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </motion.div>
 

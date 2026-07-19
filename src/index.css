@@ -587,12 +587,12 @@ a { color: inherit; text-decoration: none; }
 /* graph des jours (lundi→dimanche) */
 .card.wk .wk-graph { margin-top: 40px; }
 .card.wk .wk-bars { display: flex; gap: 14px; margin-top: 22px; }
-.card.wk .wk-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.card.wk .wk-km { height: 30px; font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--ink); white-space: nowrap; }
-.card.wk .wk-track { width: 100%; height: 300px; display: flex; align-items: flex-end; justify-content: center; }
-.card.wk .wk-bar { width: 56px; max-width: 100%; border-radius: 16px 16px 6px 6px; background: linear-gradient(180deg, var(--acc-from), var(--acc-to)); }
+.card.wk .wk-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.card.wk .wk-track { position: relative; width: 100%; height: 300px; }
+.card.wk .wk-km { position: absolute; left: 50%; transform: translateX(-50%); font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--ink); white-space: nowrap; }
+.card.wk .wk-bar { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 56px; max-width: 100%; border-radius: 16px 16px 6px 6px; background: linear-gradient(180deg, var(--acc-from), var(--acc-to)); }
 .card.wk .wk-bar.peak { width: 60px; }
-.card.wk .wk-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.24); }
+.card.wk .wk-dot { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.24); }
 .card.wk .wk-km.rest { color: var(--ink-dim); }
 .card.wk .wk-day { font-size: 24px; font-weight: 600; color: var(--ink-dim); }
 .card.wk .wk-day.on { color: var(--ink); }
@@ -858,7 +858,10 @@ a { color: inherit; text-decoration: none; }
 .recap-spinner { width: 54px; height: 54px; border-radius: 50%; border: 5px solid rgba(255,255,255,0.2); border-top-color: var(--strava); animation: spin 0.9s linear infinite; }
 .recap-export-pct { font-family: var(--font-display); font-size: 34px; font-weight: 700; }
 .recap-export-lbl { font-size: 14px; color: rgba(255,255,255,0.7); }
-.recap-actions { display: flex; gap: 12px; align-items: center; z-index: 3; }
+.recap-actions { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; z-index: 3; max-width: 100%; padding: 0 12px; }
+@media (max-width: 520px) {
+  .recap-actions .btn { padding: 12px 16px; font-size: 14px; }
+}
 .recap-note { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,0.6); }
 .recap-toast { z-index: 210; }
 

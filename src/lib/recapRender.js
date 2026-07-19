@@ -577,23 +577,39 @@ function drawWeekdays(ctx, W, H, s, lt, acc, ink, a) {
   const per = s.perDay || []
   const week = Array.from({ length: 7 }, (_, i) => per[i] || 0)
   const max = Math.max(...week, 1)
-  let peak = -1
-  for (let i = 0; i < 7; i++) if (week[i] > 0 && week[i] >= max && peak < 0) peak = i
+  let peak = -1, least = -1
+  for (let i = 0; i < 7; i++) {
+    if (week[i] > 0 && week[i] >= max && peak < 0) peak = i
+    if (week[i] > 0 && (least < 0 || week[i] < week[least])) least = i
+  }
+  if (least === peak) least = -1
+  // libellé d'un jour : km + emoji sur le plus actif (🔥), le moins actif (🐢) et le repos (😴)
+  const tag = (i) => {
+    if (week[i] <= 0) return '😴'
+    const km = (week[i] / 1000).toFixed(1).replace('.', ',')
+    if (i === peak) return `🔥 ${km}`
+    if (i === least) return `🐢 ${km}`
+    return km
+  }
   const areaW = W * 0.8, gap = W * 0.022, bw = (areaW - gap * 6) / 7, left = cx - areaW / 2
-  const base = H * 0.66, maxH = H * 0.32
+  const base = H * 0.66, maxH = H * 0.30
   const grow = easeOut(clamp((lt - 0.2) / 1.2))
   for (let i = 0; i < 7; i++) {
     const x = left + i * (bw + gap)
+    let labelY
     if (week[i] > 0) {
       const hh = Math.max(H * 0.02, (week[i] / max) * maxH) * grow
       ctx.save(); ctx.globalAlpha = a
       ctx.fillStyle = accGrad(ctx, x, base - hh, x, base, acc)
       roundRect(ctx, x, base - hh, bw, hh, Math.min(bw * 0.32, 18)); ctx.fill(); ctx.restore()
-      if (i === peak) text(ctx, `🔥 ${(week[i] / 1000).toFixed(1).replace('.', ',')}`, x + bw / 2, base - hh - 24, { size: 34, weight: 700, color: ink.fg, align: 'center', alpha: a * clamp((grow - 0.5) / 0.4) })
+      labelY = base - hh - 22
     } else {
       ctx.save(); ctx.globalAlpha = a * 0.5; ctx.fillStyle = ink.track
       ctx.beginPath(); ctx.arc(x + bw / 2, base - 14, 9, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+      labelY = base - 46
     }
+    // libellé JUSTE au-dessus de la barre (ou du point), pas en haut fixe
+    text(ctx, tag(i), x + bw / 2, labelY, { size: 30, weight: 700, color: ink.fg, align: 'center', alpha: a * clamp((grow - 0.4) / 0.4) })
     text(ctx, WK_DAYS[i], x + bw / 2, base + 56, { size: 40, weight: 600, font: BODY, color: week[i] > 0 ? ink.fg : ink.dim, align: 'center', alpha: a })
   }
   const totKm = (s.total || week.reduce((v, w) => v + w, 0)) / 1000
