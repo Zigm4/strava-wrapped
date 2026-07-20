@@ -88,7 +88,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
   // slides du récap vidéo (façon story animée) — variante hebdo pour la semaine
   const recapSlides = useMemo(
     () => (per.period === 'week'
-      ? buildWeeklyRecap(summary, { periodLabel: per.periodLabel, athleteName, privacy: opt.privacy, perDay: weekPerDay, event: weekEvent, goal: weekGoalKm })
+      ? buildWeeklyRecap(summary, { periodLabel: per.periodLabel, athleteName, privacy: opt.privacy, perDay: weekPerDay, perDayByType: weekByType, event: weekEvent, goal: weekGoalKm })
       : buildRecap(summary, {
         period: per.period, year: per.year, month: per.month.month, periodLabel: per.periodLabel, athleteName, privacy: opt.privacy,
         comparison: cmp.comparison, typeCompare: cmp.typeCompare, compareMode: opt.compareMode, heatmap, activities: filter.filteredActivities,

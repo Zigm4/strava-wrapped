@@ -641,10 +641,22 @@ function drawWeekdays(ctx, W, H, s, lt, acc, ink, a) {
     let labelY
     if (week[i] > 0) {
       const hh = Math.max(H * 0.02, (week[i] / max) * maxH) * grow
+      const barTop = base - hh
+      const segs = s.byType && s.byType[i] && s.byType[i].segs
       ctx.save(); ctx.globalAlpha = a
-      ctx.fillStyle = accGrad(ctx, x, base - hh, x, base, acc)
-      roundRect(ctx, x, base - hh, bw, hh, Math.min(bw * 0.32, 18)); ctx.fill(); ctx.restore()
-      labelY = base - hh - 22
+      roundRect(ctx, x, barTop, bw, hh, Math.min(bw * 0.32, 18)); ctx.clip() // barre à coins arrondis
+      if (segs && segs.length) { // empilement coloré par type d'activité
+        let yb = base
+        for (const sg of segs) {
+          const segH = (sg.dist / week[i]) * hh
+          ctx.fillStyle = sg.color; ctx.fillRect(x, yb - segH, bw, segH + 1)
+          yb -= segH
+        }
+      } else {
+        ctx.fillStyle = accGrad(ctx, x, barTop, x, base, acc); ctx.fillRect(x, barTop, bw, hh)
+      }
+      ctx.restore()
+      labelY = barTop - 22
     } else {
       ctx.save(); ctx.globalAlpha = a * 0.5; ctx.fillStyle = ink.track
       ctx.beginPath(); ctx.arc(x + bw / 2, base - 14, 9, 0, Math.PI * 2); ctx.fill(); ctx.restore()

@@ -109,7 +109,7 @@ export function buildRecap(summary, ctx = {}) {
 
 // Récap vidéo HEBDOMADAIRE : slides adaptés à la semaine (graph des jours + objectif).
 export function buildWeeklyRecap(summary, ctx = {}) {
-  const { periodLabel = '', athleteName = null, privacy = true, perDay = [], event = null, goal = null } = ctx
+  const { periodLabel = '', athleteName = null, privacy = true, perDay = [], perDayByType = [], event = null, goal = null } = ctx
   const slides = []
   if (!summary || summary.count === 0) return slides
 
@@ -124,7 +124,7 @@ export function buildWeeklyRecap(summary, ctx = {}) {
     slides.push({ kind: 'distance', value: summary.totalDistance, count: summary.count, activeDays: summary.activeDays, comparison: pickComparison(DIST_REFS, summary.totalDistance) })
   }
 
-  slides.push({ kind: 'weekdays', perDay, total: summary.totalDistance })
+  slides.push({ kind: 'weekdays', perDay, byType: perDayByType, total: summary.totalDistance })
 
   if (summary.totalElevation > 200) {
     slides.push({ kind: 'elevation', value: summary.totalElevation, comparison: pickComparison(ELEV_REFS, summary.totalElevation) })

@@ -1,16 +1,18 @@
 // Regroupement des dizaines de types Strava en grandes familles lisibles.
 // (les icônes sont mappées côté composant via la clé `key`)
 
+// Palette ÉQUILIBRÉE : luminosité/saturation proches d'une couleur à l'autre pour qu'aucune
+// (surtout un orange saturé) ne « pèse » plus que les autres dans les jauges empilées.
 export const FAMILIES = {
-  run:     { key: 'run',     label: 'Course',   color: '#fc4c02', metric: 'pace'  },
-  ride:    { key: 'ride',    label: 'Vélo',     color: '#1fb6ee', metric: 'speed' },
-  hike:    { key: 'hike',    label: 'Rando',    color: '#34d399', metric: 'pace'  },
-  walk:    { key: 'walk',    label: 'Marche',   color: '#2dd4bf', metric: 'pace'  },
-  swim:    { key: 'swim',    label: 'Natation', color: '#38bdf8', metric: 'swim'  },
-  ski:     { key: 'ski',     label: 'Ski',      color: '#a78bfa', metric: 'speed' },
-  workout: { key: 'workout', label: 'Renfo',    color: '#f59e0b', metric: 'time'  },
-  water:   { key: 'water',   label: 'Nautique', color: '#06b6d4', metric: 'time'  },
-  other:   { key: 'other',   label: 'Autre',    color: '#94a3b8', metric: 'time'  },
+  run:     { key: 'run',     label: 'Course',   color: '#ef8a6a', metric: 'pace'  },
+  ride:    { key: 'ride',    label: 'Vélo',     color: '#5a9fe0', metric: 'speed' },
+  hike:    { key: 'hike',    label: 'Rando',    color: '#5cc07f', metric: 'pace'  },
+  walk:    { key: 'walk',    label: 'Marche',   color: '#d9a95c', metric: 'pace'  },
+  swim:    { key: 'swim',    label: 'Natation', color: '#48c4cf', metric: 'swim'  },
+  ski:     { key: 'ski',     label: 'Ski',      color: '#a98fe0', metric: 'speed' },
+  workout: { key: 'workout', label: 'Renfo',    color: '#dd8fb0', metric: 'time'  },
+  water:   { key: 'water',   label: 'Nautique', color: '#7f93ea', metric: 'time'  },
+  other:   { key: 'other',   label: 'Autre',    color: '#9aa4b2', metric: 'time'  },
 }
 
 const MAP = {
