@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   buildMonthsForYear, mostRecentMonth, buildYears, periodActivitiesOf,
   referencePeriod, computeComparison, computeTypeCompareRows, computeProgress,
-  buildWeeks, makeWeek, mostRecentWeek, weekdayDistances,
+  buildWeeks, makeWeek, mostRecentWeek, weekdayDistances, weekdayByType,
 } from './selectors.js'
 import { generateDemoActivities } from './demoData.js'
 import { familyKey } from './activityTypes.js'
@@ -164,6 +164,26 @@ describe('selectors — semaine (lundi→dimanche)', () => {
     expect(wd[2]).toBe(8000)
     expect(wd[6]).toBe(21000)
     expect(wd[1]).toBe(0)
+  })
+
+  it('weekdayByType : segments par famille, triés desc, avec couleur', () => {
+    const acts = [
+      { start_date_local: '2026-07-12T09:00:00Z', type: 'Ride', distance: 30000 }, // dim. vélo
+      { start_date_local: '2026-07-12T15:00:00Z', type: 'Run', distance: 10000 },   // dim. course
+      { start_date_local: '2026-07-06T08:00:00Z', type: 'Run', distance: 8000 },    // lun. course
+    ]
+    const w = weekdayByType(acts)
+    expect(w).toHaveLength(7)
+    expect(w[6].total).toBe(40000)              // dimanche = idx 6
+    expect(w[6].segs).toHaveLength(2)
+    expect(w[6].segs[0].key).toBe('ride')       // vélo (30k) avant course (10k)
+    expect(w[6].segs[0].dist).toBe(30000)
+    expect(w[6].segs[0].color).toBeTruthy()
+    expect(w[6].segs[1].key).toBe('run')
+    expect(w[0].total).toBe(8000)               // lundi = 1 segment
+    expect(w[0].segs).toHaveLength(1)
+    expect(w[1].total).toBe(0)                  // mardi = repos
+    expect(w[1].segs).toHaveLength(0)
   })
 
   it('mostRecentWeek borne à la semaine courante', () => {

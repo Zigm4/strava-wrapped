@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { MapPin, Mountain, Timer, TrendingDown } from 'lucide-react'
 import AnimatedNumber from './AnimatedNumber.jsx'
 import { FORMATS } from '../data/formats.js'
+import { FAMILIES } from '../lib/activityTypes.js'
 import { fmtKm, fmtElev, fmtHours, fmtInt, dayLabel } from '../lib/format.js'
 import { daysUntil } from '../lib/date.js'
 
@@ -18,7 +19,7 @@ const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 // Distance de la semaine, D+/D-, graph des jours courus, et un objectif à deux volets :
 // compte à rebours vers un événement (texte + date) + objectif de distance de la semaine.
 const WeeklyCard = forwardRef(function WeeklyCard(
-  { summary, formatId = 'story', background, photo, periodLabel, scrim, accent, theme = 'dark', title = 'Ma semaine', handle, perDay = [], event = null, goal = null, todayIdx = -1, still = false },
+  { summary, formatId = 'story', background, photo, periodLabel, scrim, accent, theme = 'dark', title = 'Ma semaine', handle, perDay = [], perDayByType = [], sports = [], event = null, goal = null, todayIdx = -1, still = false },
   ref,
 ) {
   const fmt = FORMATS[formatId] || FORMATS.story
@@ -58,6 +59,10 @@ const WeeklyCard = forwardRef(function WeeklyCard(
     if (week[i] > 0 && (leastIdx === -1 || week[i] < week[leastIdx])) leastIdx = i
   }
   if (leastIdx === peakIdx) leastIdx = -1 // une seule sortie -> pas de "moins actif" distinct
+  // segments colorés d'un jour (par type d'activité) ; repli mono-couleur si pas de détail
+  const daySegs = (i) => (perDayByType[i]?.segs?.length ? perDayByType[i].segs : (week[i] > 0 ? [{ key: 'x', color: acc.from, dist: week[i] }] : []))
+  // répartition par type (légende + code couleur) : les sports de la semaine
+  const typeBreakdown = (sports || []).filter((t) => t.distance > 0).slice(0, 4)
   // étiquette d'un jour : km si couru (emoji sur le jour le plus / le moins actif), sinon repos.
   const dayTag = (i) => {
     if (week[i] <= 0) return '😴'
@@ -135,25 +140,39 @@ const WeeklyCard = forwardRef(function WeeklyCard(
             </div>
           </motion.div>
 
-          {/* graph des jours de la semaine */}
+          {/* graph des jours de la semaine — barres empilées par type d'activité */}
           <motion.div className="wk-graph" variants={item}>
             <div className="sec-label">Ta semaine, jour par jour 📅</div>
             <div className="wk-bars">
               {DAYS.map((dd, i) => {
-                const pct = Math.max(8, (week[i] / maxDay) * 84) // plafonné pour laisser la place au libellé au-dessus
+                const total = week[i]
+                const pct = total > 0 ? Math.max(8, (total / maxDay) * 84) : 0 // plafonné pour laisser la place au libellé
+                const segs = daySegs(i)
                 return (
                   <div className={`wk-col ${i === todayIdx ? 'is-today' : ''}`} key={i}>
                     <div className="wk-track">
-                      {week[i] > 0
-                        ? <div className={`wk-bar ${i === peakIdx ? 'peak' : ''}`} style={{ height: `${pct}%` }} />
+                      {total > 0
+                        ? <div className={`wk-bar-stack ${i === peakIdx ? 'peak' : ''}`} style={{ height: `${pct}%` }}>
+                            {segs.map((sg, si) => <div key={si} className="wk-seg" style={{ height: `${(sg.dist / total) * 100}%`, background: sg.color }} />)}
+                          </div>
                         : <span className="wk-dot" />}
-                      <span className={`wk-km ${week[i] > 0 ? '' : 'rest'}`} style={{ bottom: week[i] > 0 ? `calc(${pct}% + 12px)` : '30px' }}>{dayTag(i)}</span>
+                      <span className={`wk-km ${total > 0 ? '' : 'rest'}`} style={{ bottom: total > 0 ? `calc(${pct}% + 12px)` : '30px' }}>{dayTag(i)}</span>
                     </div>
-                    <div className={`wk-day ${week[i] > 0 ? 'on' : ''}`}>{dd}</div>
+                    <div className={`wk-day ${total > 0 ? 'on' : ''}`}>{dd}</div>
                   </div>
                 )
               })}
             </div>
+            {typeBreakdown.length > 0 && (
+              <div className="wk-legend">
+                {typeBreakdown.map((t) => (
+                  <span className="wk-leg" key={t.key}>
+                    <i className="wk-leg-dot" style={{ background: (FAMILIES[t.key] || {}).color || t.color }} />
+                    {t.label} <b>{fmtKm(t.distance)} km</b>
+                  </span>
+                ))}
+              </div>
+            )}
           </motion.div>
 
           {/* objectif : compte à rebours + distance de la semaine */}

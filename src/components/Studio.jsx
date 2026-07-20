@@ -5,7 +5,7 @@ import WeeklyCard from './WeeklyCard.jsx'
 import PosterCard from './PosterCard.jsx'
 import RecapPlayer from './RecapPlayer.jsx'
 import { aggregate, personalBestIds } from '../lib/aggregate.js'
-import { weekdayDistances } from '../lib/selectors.js'
+import { weekdayByType } from '../lib/selectors.js'
 import { buildRecap, buildWeeklyRecap } from '../lib/recap.js'
 import { buildSnapshot, shareUrl } from '../lib/share.js'
 import { monthHeatmap, yearHeatmap } from '../lib/heatmap.js'
@@ -60,10 +60,11 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
 
   // Données de la carte hebdo : distances par jour (lundi→dimanche) sur les activités filtrées,
   // et l'index du jour d'aujourd'hui s'il tombe dans la semaine affichée (pour le repère "aujourd'hui").
-  const weekPerDay = useMemo(
-    () => (per.period === 'week' ? weekdayDistances(filter.filteredActivities) : []),
+  const weekByType = useMemo(
+    () => (per.period === 'week' ? weekdayByType(filter.filteredActivities) : []),
     [per.period, filter.filteredActivities],
   )
+  const weekPerDay = useMemo(() => weekByType.map((d) => d.total), [weekByType])
   const weekTodayIdx = useMemo(() => {
     if (per.period !== 'week') return -1
     const now = new Date()
@@ -192,6 +193,8 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
               title={resolvedTitle}
               handle={opt.handle.trim()}
               perDay={weekPerDay}
+              perDayByType={weekByType}
+              sports={summary.byType}
               event={weekEvent}
               goal={weekGoalKm}
               todayIdx={weekTodayIdx}

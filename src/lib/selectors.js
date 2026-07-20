@@ -60,6 +60,25 @@ export function weekdayDistances(activities) {
   return d
 }
 
+// Par jour (lundi→dimanche), répartition par famille d'activité (pour des jauges colorées).
+// Renvoie [{ total, segs: [{ key, color, dist }] (trié desc) }] × 7.
+export function weekdayByType(activities) {
+  const days = Array.from({ length: 7 }, () => ({ total: 0, map: {} }))
+  for (const a of activities) {
+    const day = days[(localWeekday(a.start_date_local) + 6) % 7]
+    const k = familyKey(a.type)
+    const dist = a.distance || 0
+    day.total += dist
+    day.map[k] = (day.map[k] || 0) + dist
+  }
+  return days.map((day) => ({
+    total: day.total,
+    segs: Object.entries(day.map)
+      .map(([key, dist]) => ({ key, color: (FAMILIES[key] || {}).color || '#888', dist }))
+      .sort((x, y) => y.dist - x.dist),
+  }))
+}
+
 export function makeMonth(year, m, count = 0) {
   return { key: `${year}-${m}`, year, month: m, short: monthShort(m), label: monthLabel(year, m), count }
 }
