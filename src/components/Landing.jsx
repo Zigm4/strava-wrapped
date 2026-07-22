@@ -14,7 +14,7 @@ const fade = (d = 0) => ({
   transition: { duration: 0.7, delay: d, ease: [0.22, 1, 0.36, 1] },
 })
 
-export default function Landing({ onDemo, onConnect, stravaConfigured }) {
+export default function Landing({ onDemo, onConnect, onBallot, stravaConfigured }) {
   return (
     <div className="landing">
       <motion.div className="kicker" {...fade(0)}>
@@ -39,6 +39,12 @@ export default function Landing({ onDemo, onConnect, stravaConfigured }) {
           <Play size={17} /> Voir une démo
         </button>
       </motion.div>
+
+      <motion.button className="ballot-teaser" onClick={onBallot} {...fade(0.3)}>
+        <span className="bt-badge">Nouveau</span>
+        🎟️ <b>Majors Ballot Recap</b> — encore recalé au tirage ? Fête ça.
+        <span className="bt-arrow">→</span>
+      </motion.button>
 
       {!stravaConfigured && (
         <motion.div className="helper" style={{ maxWidth: 460 }} {...fade(0.3)}>

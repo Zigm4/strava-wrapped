@@ -884,3 +884,198 @@ a { color: inherit; text-decoration: none; }
 .rg-thumb.on { border-color: var(--strava); box-shadow: 0 0 0 3px rgba(252,76,2,0.4); }
 .rg-check { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%; background: var(--strava); color: #fff; display: grid; place-items: center; }
 .rg-foot { display: flex; justify-content: center; padding-top: 14px; }
+
+/* ============================================================
+   Majors Ballot Recap (page + carte)
+   ============================================================ */
+
+/* ---- teaser sur la landing ---- */
+.ballot-teaser {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 12px 20px; border-radius: 999px;
+  border: 1px solid var(--border-strong); background: var(--surface);
+  color: var(--text-dim); font-size: 14px;
+  transition: all 0.2s var(--ease-spring);
+}
+.ballot-teaser b { color: var(--text); }
+.ballot-teaser:hover { background: var(--surface-strong); transform: translateY(-2px); }
+.bt-badge {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+  color: #fff; padding: 4px 9px; border-radius: 999px;
+  background: linear-gradient(135deg, var(--strava), var(--accent-2));
+}
+.bt-arrow { color: var(--text); }
+
+/* ---- page de saisie ---- */
+.ballot-intro h2 { font-family: var(--font-display); font-size: 22px; letter-spacing: -0.02em; }
+.ballot-intro p { color: var(--text-dim); font-size: 13.5px; line-height: 1.55; margin-top: 8px; }
+.ballot-intro p b { color: var(--text); }
+
+.ballot-races { display: flex; flex-direction: column; gap: 9px; }
+.ballot-race {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+}
+.br-name { font-size: 13.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.br-counters { display: flex; gap: 10px; flex: none; }
+.counter { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.c-lbl { font-size: 9.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.c-ctrl { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 999px; background: rgba(0,0,0,0.25); }
+.c-ctrl button { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--text-dim); font-size: 15px; transition: color 0.15s, background 0.15s; }
+.c-ctrl button:hover { color: var(--text); background: var(--surface-strong); }
+.c-ctrl b { min-width: 22px; text-align: center; font-size: 13px; }
+.counter.yes .c-ctrl b { color: #4ade80; }
+
+.ballot-themes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+.ballot-theme {
+  position: relative; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end;
+  padding: 10px 12px; gap: 2px;
+  transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
+}
+.ballot-theme:hover { transform: translateY(-2px); }
+.ballot-theme.active { box-shadow: 0 0 0 2px var(--text), 0 0 0 4px var(--strava); }
+.ballot-theme .bt-emoji { font-size: 20px; }
+.ballot-theme .bt-name { font-size: 12px; font-weight: 600; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+.ballot-theme[data-light] .bt-name { color: #1a1817; text-shadow: none; }
+
+/* ---- carte : structure commune ---- */
+.card.ballot { --bacc: #ffd166; }
+.card.ballot .bl-content { justify-content: flex-start; }
+.bl-body { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: space-evenly; gap: 24px; padding-top: 14px; }
+
+.bl-head { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.bl-kicker { font-size: 23px; font-weight: 700; letter-spacing: 0.22em; color: var(--ink-dim); }
+.bl-theme-h { font-family: var(--font-display); font-weight: 700; font-size: 46px; letter-spacing: 0.02em; color: var(--bacc); }
+
+.bl-title { text-align: center; }
+.bl-title h1 { font-family: var(--font-display); font-weight: 700; font-size: 88px; line-height: 1.04; letter-spacing: -0.03em; }
+.bl-title p { font-size: 29px; color: var(--ink-dim); margin-top: 14px; line-height: 1.3; }
+
+.bl-races { display: flex; flex-direction: column; gap: 15px; }
+.bl-row {
+  display: flex; align-items: center; gap: 20px;
+  padding: 16px 24px; border-radius: 24px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+}
+.bl-row.idle { opacity: 0.55; }
+.bl-row.win {
+  background: rgba(255, 209, 102, 0.14); border-color: rgba(255, 209, 102, 0.55);
+  box-shadow: 0 0 34px -8px rgba(255, 209, 102, 0.55);
+}
+.bl-ico { width: 72px; height: 72px; border-radius: 19px; display: grid; place-items: center; font-size: 38px; flex: none; }
+.bl-meta { flex: 1; min-width: 0; }
+.bl-name { font-family: var(--font-display); font-weight: 600; font-size: 29px; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.bl-flag { font-size: 25px; }
+.bl-tag { font-size: 14px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 999px; background: var(--bacc); color: #14100a; flex: none; }
+.bl-line { font-size: 21.5px; color: var(--ink-dim); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bl-score { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.bl-cnt { font-family: var(--font-display); font-weight: 700; font-size: 25px; white-space: nowrap; }
+.bl-cnt.no { color: #ff8896; }
+.bl-cnt.yes { color: #6ee7a0; }
+.bl-dash { font-size: 30px; color: var(--ink-dim); opacity: 0.6; }
+
+.bl-totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.bl-tot { padding: 24px 16px; border-radius: 24px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); text-align: center; }
+.bl-tot b { font-family: var(--font-display); font-weight: 700; font-size: 62px; line-height: 1; display: block; }
+.bl-tot.no b { color: #ff8896; }
+.bl-tot.rate b { color: var(--bacc); }
+.bl-tot span { display: block; font-size: 19px; color: var(--ink-dim); margin-top: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+.bl-fact { text-align: center; font-size: 23px; color: var(--ink-dim); line-height: 1.35; padding: 0 20px; }
+.bl-fact b { color: var(--ink); letter-spacing: 0.06em; margin-right: 10px; }
+
+.bl-result {
+  text-align: center; font-family: var(--font-display); font-weight: 700; font-size: 33px;
+  padding: 20px; border-radius: 20px; border: 3px dashed rgba(255, 209, 102, 0.6);
+  color: var(--bacc); letter-spacing: 0.02em;
+}
+.bl-result.win { border-style: solid; background: rgba(255, 209, 102, 0.12); }
+.bl-quote { text-align: center; font-size: 28px; font-style: italic; color: var(--ink-dim); }
+
+.bl-foot { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.16); }
+.bl-tagline { font-size: 22px; color: var(--ink-dim); }
+.bl-brand { font-family: var(--font-display); font-weight: 600; font-size: 24px; }
+.bl-brand b { color: var(--strava); }
+
+.bl-confetti { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+.bl-confetti span { position: absolute; display: block; }
+
+/* ---- thème Lottery Ticket ---- */
+.card[data-btheme="lottery"] .content::before {
+  content: ''; position: absolute; inset: 26px; z-index: -1;
+  border: 4px dashed rgba(255, 209, 102, 0.45); border-radius: 34px; pointer-events: none;
+}
+.card[data-btheme="lottery"] .content::after {
+  content: '🎟️'; position: absolute; right: 40px; top: 340px; z-index: -1;
+  font-size: 230px; opacity: 0.07; transform: rotate(16deg); pointer-events: none;
+}
+.card[data-btheme="lottery"] .bl-theme-h { text-shadow: 0 0 30px rgba(255, 209, 102, 0.4); }
+
+/* ---- thème Breaking News (clair, façon journal) ---- */
+.card[data-btheme="news"] { --bacc: #c62828; }
+.card[data-btheme="news"] .content { text-shadow: none; }
+.bl-mast {
+  font-family: 'Anton', var(--font-display); font-weight: 400; font-size: 104px; line-height: 1;
+  text-transform: uppercase; width: 100%; text-align: center;
+  border-top: 7px solid var(--ink); border-bottom: 3px solid var(--ink); padding: 20px 0 14px;
+}
+.bl-dateline {
+  display: flex; justify-content: space-between; width: 100%;
+  font-size: 19px; font-weight: 600; letter-spacing: 0.08em; color: var(--ink-dim);
+  border-bottom: 1px solid var(--ink); padding: 10px 4px 12px;
+}
+.bl-headline {
+  font-family: 'Anton', var(--font-display); font-weight: 400; font-size: 42px; line-height: 1.18;
+  text-align: center; padding: 18px 10px; color: var(--bacc);
+  border-top: 3px solid var(--ink); border-bottom: 3px solid var(--ink);
+}
+.card[data-btheme="news"] .bl-title h1 { font-family: 'Anton', var(--font-display); font-weight: 400; letter-spacing: 0; }
+.card[data-btheme="news"] .bl-row,
+.card[data-btheme="news"] .bl-tot { background: rgba(0,0,0,0.045); border: 1px solid rgba(0,0,0,0.16); border-radius: 8px; }
+.card[data-btheme="news"] .bl-row.win { background: rgba(198,40,40,0.07); border-color: rgba(198,40,40,0.55); box-shadow: none; }
+.card[data-btheme="news"] .bl-cnt.no { color: #c62828; }
+.card[data-btheme="news"] .bl-cnt.yes { color: #1b7a3d; }
+.card[data-btheme="news"] .bl-tot.no b { color: #c62828; }
+.card[data-btheme="news"] .bl-tag { color: #fff; }
+.card[data-btheme="news"] .bl-foot { border-top-color: rgba(0,0,0,0.35); }
+.card[data-btheme="news"] .bl-result { border-color: rgba(198,40,40,0.5); }
+
+/* ---- thème Passport ---- */
+.card[data-btheme="passport"] { --bacc: #d4af37; }
+.card[data-btheme="passport"] .content::before {
+  content: ''; position: absolute; inset: 24px; z-index: -1;
+  border: 3px solid rgba(212, 175, 55, 0.5); border-radius: 42px; pointer-events: none;
+}
+.card[data-btheme="passport"] .content::after {
+  content: ''; position: absolute; inset: 38px; z-index: -1;
+  border: 1px solid rgba(212, 175, 55, 0.35); border-radius: 32px; pointer-events: none;
+}
+.card[data-btheme="passport"] .bl-theme-h { text-transform: uppercase; letter-spacing: 0.18em; font-size: 40px; }
+.card[data-btheme="passport"] .bl-row { border-radius: 14px; background: rgba(255,255,255,0.05); border-color: rgba(212,175,55,0.25); }
+.card[data-btheme="passport"] .bl-row.win { background: rgba(88,226,142,0.08); border-color: rgba(88,226,142,0.5); box-shadow: none; }
+.card[data-btheme="passport"] .bl-tot { border-radius: 14px; border-color: rgba(212,175,55,0.25); }
+.bl-stamp {
+  font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: 0.08em;
+  padding: 8px 14px; border: 3px solid currentColor; border-radius: 10px;
+  transform: rotate(-7deg); text-transform: uppercase; white-space: nowrap;
+}
+.bl-stamp.no { color: #ff6b7d; }
+.bl-stamp.yes { color: #58e28e; transform: rotate(5deg); }
+
+/* ---- thème Heartbreak ---- */
+.card[data-btheme="heartbreak"] { --bacc: #ff4d78; }
+.card[data-btheme="heartbreak"] .content::before {
+  content: '💔'; position: absolute; right: 26px; top: 330px; z-index: -1;
+  font-size: 240px; opacity: 0.08; transform: rotate(18deg); pointer-events: none;
+}
+.card[data-btheme="heartbreak"] .content::after {
+  content: '💔'; position: absolute; left: 10px; bottom: 220px; z-index: -1;
+  font-size: 150px; opacity: 0.06; transform: rotate(-14deg); pointer-events: none;
+}
+.card[data-btheme="heartbreak"] .bl-theme-h { color: #ff8fa8; }
+.card[data-btheme="heartbreak"] .bl-row.win { background: rgba(255,77,120,0.14); border-color: rgba(255,77,120,0.6); box-shadow: 0 0 34px -8px rgba(255,77,120,0.55); }
+.card[data-btheme="heartbreak"] .bl-tot.rate b,
+.card[data-btheme="heartbreak"] .bl-cnt.no { color: #ff8fa8; }

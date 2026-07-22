@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { RotateCcw, RefreshCw, Lock } from 'lucide-react'
+import { RotateCcw, RefreshCw, Lock, Ticket } from 'lucide-react'
 import Landing from './components/Landing.jsx'
 import Studio from './components/Studio.jsx'
 import StravaSetup from './components/StravaSetup.jsx'
 import SharedView from './components/SharedView.jsx'
+import BallotPage from './components/BallotPage.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { readShareHash } from './lib/share.js'
 import { generateDemoActivities } from './lib/demoData.js'
@@ -32,7 +33,9 @@ function Ambient() {
 }
 
 export default function App() {
-  const [view, setView] = useState('landing') // landing | loading | studio
+  const [view, setView] = useState(() =>
+    typeof window !== 'undefined' && window.location.hash === '#ballot' ? 'ballot' : 'landing',
+  ) // landing | loading | studio | ballot
   const [data, setData] = useState(null) // { activities, athleteName, isDemo }
   const [error, setError] = useState(null)
   const [loadingMsg, setLoadingMsg] = useState('')
@@ -53,7 +56,8 @@ export default function App() {
           setData({ activities: cached.activities, athleteName: cached.athleteName, isDemo: false })
           setSyncedAt(cached.fetchedAt)
           if (cached.coverageStart) setCoverageStart(cached.coverageStart)
-          setView('studio')
+          // la page Ballot (#ballot) garde la main : les données restent chargées pour le retour
+          if (window.location.hash !== '#ballot') setView('studio')
         }
       })
     if (oauthErr) { setError('Connexion Strava refusée.'); bootFromCache(); return }
@@ -87,11 +91,11 @@ export default function App() {
       tokenRef.current = { accessToken: access_token, refreshToken: refresh_token, expiresAt: expires_at }
       setLoadingMsg('Récupération de tes activités…')
       await fetchAndStore(access_token, athlete?.firstname || athlete?.username || null, expires_at)
-      setView('studio')
+      if (window.location.hash !== '#ballot') setView('studio')
     } catch (err) {
       console.error(err)
       setError(err.message || 'Une erreur est survenue.')
-      setView('landing')
+      if (window.location.hash !== '#ballot') setView('landing')
     }
   }
 
@@ -145,6 +149,33 @@ export default function App() {
       setError(err.message || 'Resynchronisation échouée.')
     } finally {
       setSyncing(false)
+    }
+  }
+
+  // navigation vers/depuis la page « Majors Ballot Recap » (route #ballot, sans Strava)
+  useEffect(() => {
+    const onHash = () => {
+      if (window.location.hash === '#ballot') setView('ballot')
+      else setView((v) => (v === 'ballot' ? (data ? 'studio' : 'landing') : v))
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [data])
+
+  function goBallot() {
+    // pushState marqué -> le bouton « Retour » pourra dépiler cette entrée (history.back)
+    // au lieu d'en laisser une en double, ce qui rendait le Back navigateur muet un coup.
+    if (window.location.hash !== '#ballot') window.history.pushState({ ballot: true }, '', '#ballot')
+    setView('ballot')
+  }
+
+  function leaveBallot() {
+    if (window.history.state?.ballot) {
+      window.history.back() // le hashchange (#ballot -> '') restaure studio/landing
+    } else {
+      // arrivée directe sur #ballot (lien profond) : rien à dépiler
+      window.history.replaceState({}, '', window.location.pathname + window.location.search)
+      setView(data ? 'studio' : 'landing')
     }
   }
 
@@ -213,6 +244,7 @@ export default function App() {
           {view === 'studio' ? (
             <div className="topbar-actions">
               {isReal && <span className="sync-status">{syncing ? 'Synchro en cours…' : `Synchro ${timeAgo(syncedAt)}`}</span>}
+              <button className="btn btn-ghost btn-sm" onClick={goBallot}><Ticket size={14} /> Ballot</button>
               {isReal && (
                 <button className="btn btn-ghost btn-sm" onClick={resync} disabled={syncing}>
                   <RefreshCw size={14} className={syncing ? 'spin' : ''} /> {syncing ? 'Synchro…' : 'Resync'}
@@ -220,15 +252,27 @@ export default function App() {
               )}
               <button className="btn btn-ghost btn-sm" onClick={reset}><RotateCcw size={14} /> {isReal ? 'Déconnexion' : 'Changer de source'}</button>
             </div>
+          ) : view === 'ballot' ? (
+            <span className="pill">🎟️ Majors Ballot Recap</span>
           ) : (
-            <span className="pill"><Lock size={13} /> 100% dans ton navigateur</span>
+            <div className="topbar-actions">
+              {/* pas pendant le chargement OAuth : entrer sur #ballot en plein fetch créerait des états croisés */}
+              {view !== 'loading' && (
+                <button className="btn btn-ghost btn-sm" onClick={goBallot}><Ticket size={14} /> Ballot recap</button>
+              )}
+              <span className="pill"><Lock size={13} /> 100% dans ton navigateur</span>
+            </div>
           )}
         </header>
 
         {error && <div className="error-banner">{error}</div>}
 
         {view === 'landing' && (
-          <Landing onDemo={handleDemo} onConnect={handleConnect} stravaConfigured={stravaConfigured} />
+          <Landing onDemo={handleDemo} onConnect={handleConnect} onBallot={goBallot} stravaConfigured={stravaConfigured} />
+        )}
+
+        {view === 'ballot' && (
+          <ErrorBoundary><BallotPage onBack={leaveBallot} /></ErrorBoundary>
         )}
 
         {view === 'loading' && (
