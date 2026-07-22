@@ -26,7 +26,7 @@ export default function PeriodPanel({
               onClick={() => onSelectWeek(w)}
             >
               <span className="wk-range">{w.label}</span>
-              <span className="wk-count">{w.outOfRange ? '—' : w.count > 0 ? `${w.count} act.` : '-'}</span>
+              <span className="wk-count">{w.outOfRange ? '·' : w.count > 0 ? `${w.count} act.` : '-'}</span>
             </button>
           ))}
         </div>
@@ -47,7 +47,7 @@ export default function PeriodPanel({
                 onClick={() => onSelectMonth(m)}
               >
                 <div className="m">{m.short}</div>
-                <div className="y">{m.outOfRange ? '—' : m.count > 0 ? `${m.count} act.` : '-'}</div>
+                <div className="y">{m.outOfRange ? '·' : m.count > 0 ? `${m.count} act.` : '-'}</div>
               </button>
             ))}
           </div>

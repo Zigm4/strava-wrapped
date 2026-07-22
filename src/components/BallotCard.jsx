@@ -2,12 +2,15 @@ import { forwardRef, useLayoutEffect, useRef, useState } from 'react'
 import { FORMATS } from '../data/formats.js'
 import { BALLOT_MAJORS } from '../data/majors.js'
 import { BALLOT_COPY } from '../data/ballotCopy.js'
-import { bucketFor, computeStats, luckLabel, makeDistinctPicker, mulberry32, pick, pickTitle } from '../lib/ballot.js'
+import {
+  bucketFor, computeStats, luckLabel, makeDistinctPicker, mulberry32, pick, pickTitle,
+  sixStarProgress, sixStarTier,
+} from '../lib/ballot.js'
 
 const CONFETTI = ['🎉', '🎊', '✨', '🏅', '🥇', '🍾', '⭐']
 
-// Carte « Majors Ballot Recap » (format story 1080×1920). Tout le texte est en anglais
-// (c'est la carte qui se partage) ; l'UI autour reste en français. Aucune animation :
+// Carte « Majors Ballot Recap » (format story 1080x1920). Tout le texte est en anglais
+// (c'est la carte qui se partage) ; l'UI autour reste en francais. Aucune animation :
 // rendu statique -> export PNG fiable via useCardExport.
 const BallotCard = forwardRef(function BallotCard({ theme, entries = {}, seed = 1 }, ref) {
   const fmt = FORMATS.story
@@ -16,14 +19,18 @@ const BallotCard = forwardRef(function BallotCard({ theme, entries = {}, seed = 
   const won = stats.totalAcc > 0
   const title = pickTitle(copy.titles, stats, seed)
   const footer = pick(copy.footers, seed, 'footer')
-  // « Reality check » : une vraie stat de tirage, piochée parmi les courses qui ont rejeté
-  const rejectedRaces = BALLOT_MAJORS.filter((r) => (entries[r.id]?.rej || 0) > 0 && r.funFact)
+  // Six Star : etoiles = 6 classiques finies (Boston via son toggle), bonus = Sydney/Cape Town
+  const progress = sixStarProgress(entries)
+  const showStars = stats.totalAttempts > 0 || progress.stars + progress.bonus > 0
+  const starLine = showStars ? pick(copy.sixStar[sixStarTier(progress.stars)], seed, 'sixstar') : ''
+  // « Reality check » : une vraie stat de tirage, piochee parmi les courses qui ont rejete
+  const rejectedRaces = BALLOT_MAJORS.filter((r) => (entries[r.id]?.rej || 0) > 0 && r.funFacts?.length)
   const factRace = rejectedRaces.length ? pick(rejectedRaces, seed, 'fact') : null
-  // une punchline par course, sans doublon dans un même paquet (sinon 3 courses à 1 rejet
-  // peuvent tirer la même ligne — ça casse l'effet)
+  const fact = factRace ? pick(factRace.funFacts, seed, `${factRace.id}-fact`) : ''
+  // une punchline par course, sans doublon dans un meme paquet
   const pickLine = makeDistinctPicker()
 
-  // fit-to-frame (comme StoryCard) : réduit le corps si le contenu déborde du canevas
+  // fit-to-frame (comme StoryCard) : reduit le corps si le contenu deborde du canevas
   const bodyRef = useRef(null)
   const [fit, setFit] = useState(1)
   useLayoutEffect(() => {
@@ -36,7 +43,7 @@ const BallotCard = forwardRef(function BallotCard({ theme, entries = {}, seed = 
     }
     measure()
     // re-mesure une fois les webfonts actives : la 1re mesure (police de repli) sous-estime
-    // parfois la hauteur -> le fit serait faux jusqu'au prochain changement d'entrée
+    // parfois la hauteur -> le fit serait faux jusqu'au prochain changement d'entree
     let alive = true
     document.fonts?.ready?.then(() => { if (alive) measure() })
     const ro = new ResizeObserver(measure)
@@ -45,7 +52,7 @@ const BallotCard = forwardRef(function BallotCard({ theme, entries = {}, seed = 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, theme.id, seed])
 
-  // confettis statiques, positions déterministes (seed) -> rendu stable + export fiable
+  // confettis statiques, positions deterministes (seed) -> rendu stable + export fiable
   const confetti = []
   if (won) {
     const rnd = mulberry32(seed + 42)
@@ -88,6 +95,21 @@ const BallotCard = forwardRef(function BallotCard({ theme, entries = {}, seed = 
               <span>PRICE: ONE ENTRY FEE 💸</span>
             </div>
           </header>
+        ) : theme.id === 'receipt' ? (
+          <header className="bl-head">
+            <div className="bl-rc-store">{copy.themes.receipt.header}</div>
+            <div className="bl-rc-sub">{copy.themes.receipt.sub}</div>
+            <div className="bl-rc-rule">************************************</div>
+          </header>
+        ) : theme.id === 'inbox' ? (
+          <header className="bl-head">
+            <div className="bl-kicker">🎟️ MAJORS BALLOT RECAP</div>
+            <div className="bl-theme-h">
+              {copy.themes.inbox.header}
+              {stats.totalRej > 0 ? <span className="bl-unread">{stats.totalRej}</span> : null}
+            </div>
+            <div className="bl-inbox-sub">{copy.themes.inbox.sub}</div>
+          </header>
         ) : (
           <header className="bl-head">
             <div className="bl-kicker">🎟️ MAJORS BALLOT RECAP</div>
@@ -119,21 +141,17 @@ const BallotCard = forwardRef(function BallotCard({ theme, entries = {}, seed = 
                     <div className="bl-name">
                       {race.name} <span className="bl-flag">{race.flag}</span>
                       {race.tag ? <span className="bl-tag">{race.tag}</span> : null}
+                      {entries[race.id]?.fin ? <span className="bl-finstar">⭐</span> : null}
                     </div>
                     <div className="bl-line">{line}</div>
                   </div>
                   <div className="bl-score">
                     {idle ? (
-                      <span className="bl-dash">—</span>
-                    ) : theme.id === 'passport' ? (
-                      <>
-                        {e.rej > 0 && <span className="bl-stamp no">{copy.themes.passport.denied}{e.rej > 1 ? ` ×${e.rej}` : ''}</span>}
-                        {e.acc > 0 && <span className="bl-stamp yes">{copy.themes.passport.approved}{e.acc > 1 ? ` ×${e.acc}` : ''}</span>}
-                      </>
+                      <span className="bl-stamp never">{copy.stamps.never}</span>
                     ) : (
                       <>
-                        {e.rej > 0 && <span className="bl-cnt no">❌ ×{e.rej}</span>}
-                        {e.acc > 0 && <span className="bl-cnt yes">✅ ×{e.acc}</span>}
+                        {e.rej > 0 && <span className="bl-stamp no">{copy.stamps.denied}{e.rej > 1 ? ` ×${e.rej}` : ''}</span>}
+                        {e.acc > 0 && <span className="bl-stamp yes">{copy.stamps.approved}{e.acc > 1 ? ` ×${e.acc}` : ''}</span>}
                       </>
                     )}
                   </div>
@@ -148,15 +166,34 @@ const BallotCard = forwardRef(function BallotCard({ theme, entries = {}, seed = 
             <div className="bl-tot rate"><b>{luckLabel(stats)}</b><span>Luck rate</span></div>
           </div>
 
-          {factRace && (
-            <div className="bl-fact"><b>REALITY CHECK 📊</b> {factRace.funFact}</div>
+          {showStars && (
+            <div className="bl-sixstar">
+              <div className="bl-stars">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <span key={i} className={i < progress.stars ? 'on' : ''}>{i < progress.stars ? '★' : '☆'}</span>
+                ))}
+                <b className="bl-star-count">{progress.stars}/6</b>
+                {progress.bonus > 0 && <span className="bl-star-bonus">+{progress.bonus} bonus ⭐</span>}
+              </div>
+              <div className="bl-star-line">{starLine}</div>
+            </div>
+          )}
+
+          {fact && (
+            <div className="bl-fact"><b>REALITY CHECK 📊</b> {fact}</div>
           )}
 
           {theme.id === 'lottery' && stats.totalAttempts > 0 && (
             <div className={`bl-result${won ? ' win' : ''}`}>{won ? copy.themes.lottery.win : copy.themes.lottery.lose}</div>
           )}
+          {theme.id === 'receipt' && stats.totalAttempts > 0 && (
+            <div className="bl-result rc">{copy.themes.receipt.noRefunds}</div>
+          )}
+          {theme.id === 'inbox' && !won && stats.totalRej > 0 && (
+            <div className="bl-quote">{copy.themes.inbox.storage}</div>
+          )}
           {theme.id === 'heartbreak' && !won && stats.totalAttempts > 0 && (
-            <div className="bl-quote">“{copy.themes.heartbreak.line}”</div>
+            <div className="bl-quote">« {copy.themes.heartbreak.line} »</div>
           )}
         </div>
 

@@ -1,7 +1,8 @@
-// Banc de punchlines (anglais) du « Majors Ballot Recap » — sélection finale d'un panel
-// de 3 rédacteurs (deadpan / dramatique / meme) arbitré par un juge. Les lignes sont
-// tirées au sort (seed) par course/usage — voir src/lib/ballot.js. Longueurs contraintes
-// par la carte : perRace ≤ 55 car., title ≤ 32, subtitle ≤ 64, footers ≤ 60.
+// Banc de punchlines (anglais) du « Majors Ballot Recap », selection issue d'un panel
+// de 3 redacteurs (deadpan / dramatique / meme) arbitre par un juge, puis elargie.
+// Les lignes sont tirees au sort (seed) par course/usage, sans doublon par paquet,
+// voir src/lib/ballot.js. Longueurs contraintes par la carte : perRace <= 55 car.,
+// title <= 32, subtitle <= 64, footers <= 60.
 
 export const BALLOT_COPY = {
   perRace: {
@@ -11,6 +12,9 @@ export const BALLOT_COPY = {
       'First try. FIRST TRY. The audacity. 🍀',
       '✅ In on attempt one. Statistically offensive.',
       '✅ Accepted instantly. The lottery has a favorite 🙄',
+      '✅ Zero rejections. We are calling the police 🚨',
+      '✅ One entry, one yes. Save some luck for us.',
+      '✅ The RNG took one look and said « fine » 😤',
     ],
     accepted: [
       '✅ Persistence: 1, Random number generator: 0.',
@@ -18,6 +22,9 @@ export const BALLOT_COPY = {
       'Suffered, wept, then... VICTORY 🏅',
       '✅ Screenshot the email. Frame it. Tattoo it 🖼️',
       'A few scars, one glorious YES 🎉',
+      '✅ The drought is over. Cue the opera 🎻',
+      '✅ Rejection tried. Destiny won.',
+      '✅ Worth every « unfortunately » that came before 💌',
     ],
     acceptedAfterMany: [
       '✅ After years of no: YES. Cry. It’s allowed.',
@@ -25,6 +32,9 @@ export const BALLOT_COPY = {
       'Rose from the rejection ashes 🔥🐦',
       '✅ They rejected us so long we became family.',
       'Years of pain. One email. REDEMPTION. 🕊️',
+      '✅ Outlasted the algorithm. Legend behavior 🗿',
+      '✅ The sunk cost finally paid out 📈',
+      '✅ Somewhere, a rejection template just retired 🪦',
     ],
     rejectedOnce: [
       '❌ Rejected once. Adorable. Just wait.',
@@ -32,39 +42,61 @@ export const BALLOT_COPY = {
       '❌ One no. The wound is fresh. 🥀',
       '❌ Denied. The violins have begun. 🎻',
       '❌ Left on read by an entire marathon 📵',
+      '❌ Your first « unfortunately ». A milestone 🎀',
+      '❌ Welcome to the club. Meetings are annual 🤝',
+      '❌ It’s not you. It’s the RNG. (Mostly.)',
     ],
     rejectedFew: [
       '❌ They know our name now. Still say no.',
       '❌ Rejection is now an annual tradition.',
       '❌ Entering ballots is our real cardio.',
-      '❌ The “no” folder is filling up nicely 🗂️',
+      '❌ The « no » folder is filling up nicely 🗂️',
       '❌ Losing streak: active. Hope: also active ✨',
+      '❌ Charm has failed on every attempt so far 🎩',
+      '❌ We fund this race. It ghosts us anyway 💸',
+      '❌ Consistency! Just in the wrong direction 📉',
     ],
     rejectedMany: [
-      '❌ The ballot has us on a “do not draw” list.',
+      '❌ The ballot has us on a « do not draw » list.',
       '❌ Our entry fee funds someone else’s medal.',
       '❌ Rejected so often it’s basically a hobby.',
       '❌ At this point it’s a long-term relationship 💍',
       '❌ The rejection email autofills your name now 📧',
       '❌ Certified veteran of pain. Salute 🫡',
+      '❌ Statistically impressive. Emotionally ruinous.',
+      '❌ The odds fear commitment. You clearly don’t 💪',
+      '❌ A rejection anthology, new volume every year 📚',
+      '❌ Some servers exist only to store your « no »s 🖥️',
     ],
     neverTried: [
       '🫥 Can’t get rejected if you never enter.',
       '🤷 Zero attempts. Zero heartbreak. Zero glory.',
       '🙈 Still gathering the courage. Understandable.',
       '😶 Not entered yet. The ballot misses you.',
+      '🛋️ Watching others suffer, from the sofa. Wise.',
+      '⏳ The odds are waiting. They are very patient.',
+      '🎟️ No ticket, no tears. For now.',
+      '🧠 The only winning move: not playing. Yet.',
     ],
   },
   titles: [
     { profile: 'someAccepted', minRejections: 0, title: 'Blessed By The Ballot ✨', subtitle: 'You won a lottery grown adults cry about. Enjoy it.' },
     { profile: 'someAccepted', minRejections: 0, title: 'The Chosen One 🎉', subtitle: 'Accepted with barely any suffering. The rest of us are fine.' },
+    { profile: 'someAccepted', minRejections: 0, title: 'Kissed By Fortune 💋', subtitle: 'Accepted while barely trying. Science cannot explain you.' },
     { profile: 'someAccepted', minRejections: 3, title: 'The Comeback Kid 🎬', subtitle: 'They said no. Then destiny cleared its throat.' },
+    { profile: 'someAccepted', minRejections: 3, title: 'Plot Twist Champion 🌀', subtitle: 'Rejections everywhere, then one glorious yes.' },
     { profile: 'someAccepted', minRejections: 8, title: 'The Redemption Arc 🏅', subtitle: 'Years of no, then one yes. Hollywood wants the rights.' },
-    { profile: 'allRejected', minRejections: 1, title: 'The Journey Begins ❌', subtitle: 'One rejection down. Collect them all — everyone else does.' },
+    { profile: 'someAccepted', minRejections: 8, title: 'Survivor of the Odds 🏔️', subtitle: 'They said no for years. You heard « not yet ».' },
+    { profile: 'allRejected', minRejections: 1, title: 'The Journey Begins ❌', subtitle: 'One rejection down. Everyone collects them, apparently.' },
+    { profile: 'allRejected', minRejections: 1, title: 'Fresh Meat 🥩', subtitle: 'One rejection in. The lottery is just warming up.' },
     { profile: 'allRejected', minRejections: 4, title: 'A Symphony of No 🎻', subtitle: 'Four movements, all in the key of rejection.' },
+    { profile: 'allRejected', minRejections: 4, title: 'Rejection Season Regular 📅', subtitle: 'The annual tradition nobody asked for.' },
     { profile: 'allRejected', minRejections: 8, title: 'CEO of Rejection 💼', subtitle: 'Double digits loading. The lottery fears your commitment.' },
+    { profile: 'allRejected', minRejections: 8, title: 'Officially Unlucky 📜', subtitle: 'Eight plus rejections. The RNG owes you an apology.' },
     { profile: 'allRejected', minRejections: 15, title: 'Final Boss of Rejection 🗿', subtitle: '15+ noes. Museums have asked about the collection.' },
+    { profile: 'allRejected', minRejections: 15, title: 'Lottery Legend 👑', subtitle: '15+ noes and still entering. Doctors are fascinated.' },
     { profile: 'nothingYet', minRejections: 0, title: 'Spectator Mode 🍿', subtitle: 'Watching from a safe distance. The drama awaits your debut.' },
+    { profile: 'nothingYet', minRejections: 0, title: 'Undefeated (0 Entries) 🛡️', subtitle: 'Never entered, never lost. Technically flawless.' },
   ],
   footers: [
     'Entry fees lovingly donated to the rejection gods 🙏',
@@ -72,7 +104,37 @@ export const BALLOT_COPY = {
     'Running 42km is easy. Getting in is the real marathon 🏁',
     'Powered by hope, denial, and calendar reminders 📅',
     'The odds are never in your favor. Enter anyway 🎲',
+    'No refunds on entry fees or feelings 💸',
+    'Rejection builds character. We are very built. 💪',
+    'This card cost less than one entry fee 🙃',
+    'Insert coin to try again next year 🪙',
+    'Certified by the Department of Unlucky Runners 📋',
   ],
+  // tampons affiches sur TOUS les themes (le detail qui plait) ; never = course jamais tentee
+  stamps: { denied: 'DENIED', approved: 'APPROVED', never: 'NOT YET' },
+  // ligne « Six Star progress », par palier d'etoiles finies (les 6 classiques)
+  sixStar: {
+    zero: [
+      'Six Star progress: the stars remain untouched 🌌',
+      '0/6 stars. The medal engraver sleeps soundly 😴',
+      'Six Star journey status: still at the front door 🚪',
+    ],
+    started: [
+      'The Six Star hunt has begun. The stars are nervous ✨',
+      'Medal engraver status: mildly concerned 🔨',
+      'A star is born. The other five are hiding 🌟',
+    ],
+    halfway: [
+      'So close the Six Star medal can smell you 👃',
+      'The engraver is practicing your name already ✍️',
+      'Collecting stars like infinity stones. Snap soon 🫰',
+    ],
+    full: [
+      'SIX STAR FINISHER. Bow. Down. 👑',
+      'All six stars. The lottery finally lost 🏆',
+      'Six stars secured. Retirement? Never heard of it 🚀',
+    ],
+  },
   themes: {
     lottery: {
       header: 'SCRATCH & WEEP 🎫',
@@ -81,17 +143,25 @@ export const BALLOT_COPY = {
     },
     news: {
       masthead: 'The Daily Rejection',
-      headlineRejected: 'LOCAL RUNNER DENIED AGAIN — VOWS TO “FEEL NOTHING” ❌',
-      headlineAccepted: 'MIRACLE: BALLOT SAYS YES — SCIENTISTS BAFFLED ✅',
+      headlineRejected: 'LOCAL RUNNER DENIED AGAIN, VOWS TO « FEEL NOTHING » ❌',
+      headlineAccepted: 'MIRACLE: BALLOT SAYS YES, SCIENTISTS BAFFLED ✅',
     },
     passport: {
       header: 'Marathon Passport 🛂',
-      denied: 'DENIED',
-      approved: 'APPROVED?!',
     },
     heartbreak: {
       header: 'It’s Not You. It’s Odds.',
-      line: 'The ballot said “let’s just be friends” — again. 💔',
+      line: 'The ballot said « let’s just be friends ». Again. 💔',
+    },
+    receipt: {
+      header: 'MAJORS BALLOT CO. 🧾',
+      sub: 'OFFICIAL RECEIPT OF PAIN',
+      noRefunds: '*** NO REFUNDS. NOT EVEN FOR FEELINGS ***',
+    },
+    inbox: {
+      header: 'Rejection Inbox 📥',
+      sub: 'Marked as read. Never as accepted.',
+      storage: 'Storage almost full: too many « unfortunately » emails 🗑️',
     },
   },
 }

@@ -1,5 +1,5 @@
-// Thèmes visuels de la carte « Majors Ballot Recap » — chacun a une identité forte,
-// indépendante des fonds du rewind. `light: true` -> encre sombre sur fond clair.
+// Themes visuels de la carte « Majors Ballot Recap », chacun avec une identite forte,
+// independante des fonds du rewind. `light: true` -> encre sombre sur fond clair.
 
 export const BALLOT_THEMES = [
   { id: 'lottery', name: 'Lottery Ticket', emoji: '🎟️', light: false,
@@ -14,6 +14,12 @@ export const BALLOT_THEMES = [
   { id: 'heartbreak', name: 'Heartbreak', emoji: '💔', light: false,
     css: 'radial-gradient(120% 90% at 30% -10%, #6d1030 0%, transparent 55%), linear-gradient(165deg, #3d0a1d 0%, #1d0510 55%, #0d020a 100%)',
     accent: '#ff4d78' },
+  { id: 'receipt', name: 'Receipt of Pain', emoji: '🧾', light: true,
+    css: 'radial-gradient(120% 100% at 50% 0%, #fdfaf1 0%, #f5efdc 70%, #ece4cb 100%)',
+    accent: '#c2410c' },
+  { id: 'inbox', name: 'Rejection Inbox', emoji: '📥', light: false,
+    css: 'radial-gradient(120% 90% at 50% -10%, #26354d 0%, transparent 55%), linear-gradient(170deg, #1b2637 0%, #101826 60%, #0a0f18 100%)',
+    accent: '#60a5fa' },
 ]
 
 export const DEFAULT_BALLOT_THEME = 'lottery'

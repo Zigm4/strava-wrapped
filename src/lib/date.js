@@ -1,4 +1,4 @@
-// Dates Strava — SANS jamais repasser par le fuseau horaire du navigateur.
+// Dates Strava : SANS jamais repasser par le fuseau horaire du navigateur.
 //
 // Piège : Strava renvoie `start_date_local` comme l'heure LOCALE de l'athlète,
 // mais sérialisée avec un "Z" final trompeur (ex. une sortie du 31 juillet à 23h30

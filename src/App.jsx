@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { RotateCcw, RefreshCw, Lock, Ticket } from 'lucide-react'
+import { Power, RefreshCw, Lock, Ticket } from 'lucide-react'
 import Landing from './components/Landing.jsx'
 import Studio from './components/Studio.jsx'
 import StravaSetup from './components/StravaSetup.jsx'
@@ -250,7 +250,15 @@ export default function App() {
                   <RefreshCw size={14} className={syncing ? 'spin' : ''} /> {syncing ? 'Synchro…' : 'Resync'}
                 </button>
               )}
-              <button className="btn btn-ghost btn-sm" onClick={reset}><RotateCcw size={14} /> {isReal ? 'Déconnexion' : 'Changer de source'}</button>
+              {/* icone seule : gagne la place qui faisait deborder la topbar sur mobile */}
+              <button
+                className="btn btn-ghost btn-sm btn-icon"
+                onClick={reset}
+                title={isReal ? 'Déconnexion' : 'Changer de source'}
+                aria-label={isReal ? 'Déconnexion' : 'Changer de source'}
+              >
+                <Power size={15} />
+              </button>
             </div>
           ) : view === 'ballot' ? (
             <span className="pill">🎟️ Majors Ballot Recap</span>

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { pickComparison, DIST_REFS, ELEV_REFS } from './recapCompare.js'
 
-describe('recapCompare — pickComparison', () => {
+describe('recapCompare : pickComparison', () => {
   it('renvoie une référence au ratio parlant + ratio cohérent', () => {
     const c = pickComparison(ELEV_REFS, 5000, () => 0.5)
     expect(c).toBeTruthy()

@@ -698,7 +698,7 @@ a { color: inherit; text-decoration: none; }
 .card .map-info .map-sub { font-size: 22px; color: var(--ink-dim); margin-top: 14px; }
 .card .map-info .map-powered { text-align: left; margin-top: auto; padding-top: 18px; }
 
-/* calendrier (heatmap) — remplace la mini-carte */
+/* calendrier (heatmap) : remplace la mini-carte */
 .card .c-cal { margin-top: 30px; display: flex; flex-direction: column; gap: 18px; }
 .card .c-cal .sec-label { display: flex; align-items: center; gap: 8px; }
 .card .cal-legend { display: flex; align-items: center; gap: 12px; font-size: 20px; color: var(--ink-dim); }
@@ -762,6 +762,10 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 520px) {
   .topbar .pill { display: none; }
   .sync-status { display: none; }
+  /* topbar compacte : avec Ballot + Resync + power, chaque pixel compte */
+  .topbar-actions { gap: 6px; }
+  .topbar-actions .btn-sm { padding: 10px 12px; }
+  .topbar-actions .btn-icon { width: 36px; height: 36px; padding: 9px; }
 }
 
 /* ---------- thème clair de la carte ---------- */
@@ -971,11 +975,17 @@ a { color: inherit; text-decoration: none; }
 .bl-flag { font-size: 25px; }
 .bl-tag { font-size: 14px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 999px; background: var(--bacc); color: #14100a; flex: none; }
 .bl-line { font-size: 21.5px; color: var(--ink-dim); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bl-score { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-.bl-cnt { font-family: var(--font-display); font-weight: 700; font-size: 25px; white-space: nowrap; }
-.bl-cnt.no { color: #ff8896; }
-.bl-cnt.yes { color: #6ee7a0; }
-.bl-dash { font-size: 30px; color: var(--ink-dim); opacity: 0.6; }
+.bl-score { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+/* tampons DENIED / APPROVED : sur TOUS les themes (couleurs ajustees par theme plus bas) */
+.bl-stamp {
+  font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: 0.08em;
+  padding: 8px 14px; border: 3px solid currentColor; border-radius: 10px;
+  transform: rotate(-7deg); text-transform: uppercase; white-space: nowrap;
+}
+.bl-stamp.no { color: #ff6b7d; }
+.bl-stamp.yes { color: #58e28e; transform: rotate(5deg); }
+.bl-stamp.never { color: var(--ink-dim); opacity: 0.55; border-style: dashed; transform: rotate(-4deg); font-size: 17px; }
+.bl-finstar { font-size: 22px; }
 
 .bl-totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .bl-tot { padding: 24px 16px; border-radius: 24px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); text-align: center; }
@@ -1036,8 +1046,8 @@ a { color: inherit; text-decoration: none; }
 .card[data-btheme="news"] .bl-row,
 .card[data-btheme="news"] .bl-tot { background: rgba(0,0,0,0.045); border: 1px solid rgba(0,0,0,0.16); border-radius: 8px; }
 .card[data-btheme="news"] .bl-row.win { background: rgba(198,40,40,0.07); border-color: rgba(198,40,40,0.55); box-shadow: none; }
-.card[data-btheme="news"] .bl-cnt.no { color: #c62828; }
-.card[data-btheme="news"] .bl-cnt.yes { color: #1b7a3d; }
+.card[data-btheme="news"] .bl-stamp.no { color: #c62828; }
+.card[data-btheme="news"] .bl-stamp.yes { color: #1b7a3d; }
 .card[data-btheme="news"] .bl-tot.no b { color: #c62828; }
 .card[data-btheme="news"] .bl-tag { color: #fff; }
 .card[data-btheme="news"] .bl-foot { border-top-color: rgba(0,0,0,0.35); }
@@ -1057,13 +1067,6 @@ a { color: inherit; text-decoration: none; }
 .card[data-btheme="passport"] .bl-row { border-radius: 14px; background: rgba(255,255,255,0.05); border-color: rgba(212,175,55,0.25); }
 .card[data-btheme="passport"] .bl-row.win { background: rgba(88,226,142,0.08); border-color: rgba(88,226,142,0.5); box-shadow: none; }
 .card[data-btheme="passport"] .bl-tot { border-radius: 14px; border-color: rgba(212,175,55,0.25); }
-.bl-stamp {
-  font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: 0.08em;
-  padding: 8px 14px; border: 3px solid currentColor; border-radius: 10px;
-  transform: rotate(-7deg); text-transform: uppercase; white-space: nowrap;
-}
-.bl-stamp.no { color: #ff6b7d; }
-.bl-stamp.yes { color: #58e28e; transform: rotate(5deg); }
 
 /* ---- thème Heartbreak ---- */
 .card[data-btheme="heartbreak"] { --bacc: #ff4d78; }
@@ -1079,3 +1082,72 @@ a { color: inherit; text-decoration: none; }
 .card[data-btheme="heartbreak"] .bl-row.win { background: rgba(255,77,120,0.14); border-color: rgba(255,77,120,0.6); box-shadow: 0 0 34px -8px rgba(255,77,120,0.55); }
 .card[data-btheme="heartbreak"] .bl-tot.rate b,
 .card[data-btheme="heartbreak"] .bl-cnt.no { color: #ff8fa8; }
+
+/* ---- bouton icone (topbar mobile) ---- */
+.btn-icon { padding: 10px; width: 38px; height: 38px; flex: none; }
+
+/* ---- toggle « Fini » (Six Star) dans la page de saisie ---- */
+.fin-toggle {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  color: var(--text-faint); transition: color 0.15s, transform 0.15s var(--ease-spring);
+}
+.fin-toggle i { font-style: normal; font-size: 19px; line-height: 26px; }
+.fin-toggle span { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; }
+.fin-toggle:hover { color: var(--text); transform: translateY(-1px); }
+.fin-toggle.on { color: #fbbf24; }
+.fin-toggle.on span { color: var(--text-dim); }
+.ballot-race.boston { border-style: dashed; }
+.br-note { font-size: 11px; color: var(--text-faint); margin-left: 6px; }
+
+/* ---- Six Star progress (carte) ---- */
+.bl-sixstar { text-align: center; }
+.bl-stars { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 44px; line-height: 1; }
+.bl-stars span { color: var(--ink-dim); opacity: 0.5; }
+.bl-stars span.on { color: var(--bacc); opacity: 1; text-shadow: 0 0 22px color-mix(in srgb, var(--bacc) 55%, transparent); }
+.bl-star-count { font-family: var(--font-display); font-weight: 700; font-size: 30px; margin-left: 10px; }
+.bl-star-bonus { font-size: 21px; color: var(--ink-dim); margin-left: 6px; }
+.bl-star-line { font-size: 23px; color: var(--ink-dim); margin-top: 12px; }
+
+/* ---- theme Receipt of Pain (ticket de caisse, clair, monospace) ---- */
+.card[data-btheme="receipt"] { --bacc: #c2410c; }
+.card[data-btheme="receipt"] .content { text-shadow: none; font-family: 'Courier New', Courier, monospace; }
+.bl-rc-store { font-weight: 700; font-size: 54px; letter-spacing: 0.04em; }
+.bl-rc-sub { font-size: 24px; letter-spacing: 0.3em; color: var(--ink-dim); margin-top: 6px; }
+.bl-rc-rule { font-size: 26px; letter-spacing: 0.1em; color: var(--ink-dim); margin-top: 10px; }
+.card[data-btheme="receipt"] .bl-title h1 { font-family: inherit; font-weight: 700; letter-spacing: 0; text-transform: uppercase; font-size: 74px; }
+.card[data-btheme="receipt"] .bl-title p { font-family: inherit; }
+.card[data-btheme="receipt"] .bl-row,
+.card[data-btheme="receipt"] .bl-tot {
+  background: transparent; border: 0; border-radius: 0;
+  border-bottom: 3px dashed rgba(0,0,0,0.22);
+}
+.card[data-btheme="receipt"] .bl-row { padding: 14px 6px; }
+.card[data-btheme="receipt"] .bl-row.win { box-shadow: none; background: rgba(194,65,12,0.07); }
+.card[data-btheme="receipt"] .bl-name { font-family: inherit; }
+.card[data-btheme="receipt"] .bl-ico { border-radius: 10px; }
+.card[data-btheme="receipt"] .bl-stamp { font-family: inherit; border-radius: 4px; }
+.card[data-btheme="receipt"] .bl-stamp.no { color: #c2410c; }
+.card[data-btheme="receipt"] .bl-stamp.yes { color: #15803d; }
+.card[data-btheme="receipt"] .bl-tot b { font-family: inherit; }
+.card[data-btheme="receipt"] .bl-result.rc { border: 0; font-family: inherit; font-size: 28px; letter-spacing: 0.06em; color: var(--ink); }
+.card[data-btheme="receipt"] .bl-foot { border-top: 3px dashed rgba(0,0,0,0.3); }
+.card[data-btheme="receipt"] .bl-fact b,
+.card[data-btheme="receipt"] .bl-star-count { font-family: inherit; }
+
+/* ---- theme Rejection Inbox (client mail sombre) ---- */
+.card[data-btheme="inbox"] { --bacc: #60a5fa; }
+.bl-unread {
+  display: inline-grid; place-items: center; vertical-align: middle;
+  min-width: 52px; height: 52px; padding: 0 12px; margin-left: 14px;
+  border-radius: 999px; background: #ef4444; color: #fff;
+  font-family: var(--font-display); font-weight: 700; font-size: 30px;
+}
+.bl-inbox-sub { font-size: 22px; color: var(--ink-dim); }
+.card[data-btheme="inbox"] .bl-row {
+  border-left: 8px solid var(--bacc); border-radius: 14px;
+  background: rgba(255,255,255,0.06); border-top: 0; border-right: 0; border-bottom: 0;
+}
+.card[data-btheme="inbox"] .bl-row.idle { border-left-color: rgba(255,255,255,0.18); }
+.card[data-btheme="inbox"] .bl-row.win { border-left-color: #4ade80; background: rgba(74,222,128,0.09); box-shadow: 0 0 30px -10px rgba(74,222,128,0.5); }
+.card[data-btheme="inbox"] .bl-stamp.no { color: #f87171; }
+.card[data-btheme="inbox"] .bl-stamp.yes { color: #4ade80; }

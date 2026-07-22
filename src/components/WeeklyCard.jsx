@@ -73,13 +73,13 @@ const WeeklyCard = forwardRef(function WeeklyCard(
   }
   const restWeek = !summary || summary.count === 0
 
-  // objectif — volet événement (compte à rebours)
+  // objectif : volet événement (compte à rebours)
   const jx = event?.date ? daysUntil(event.date) : null
   const jxText = jx == null ? null : jx > 0 ? `J-${jx}` : jx === 0 ? 'Jour J' : `J+${-jx}`
   const eventDateLbl = event?.date ? `${dayLabel(event.date)} ${String(event.date).slice(0, 4)}` : null
   const hasEvent = !!(event && (event.name || event.date))
 
-  // objectif — volet distance de la semaine
+  // objectif : volet distance de la semaine
   const goalKm = goal > 0 ? goal : null
   const doneM = summary?.totalDistance || 0
   const goalM = goalKm ? goalKm * 1000 : 0
@@ -140,7 +140,7 @@ const WeeklyCard = forwardRef(function WeeklyCard(
             </div>
           </motion.div>
 
-          {/* graph des jours de la semaine — barres empilées par type d'activité */}
+          {/* graph des jours de la semaine : barres empilées par type d'activité */}
           <motion.div className="wk-graph" variants={item}>
             <div className="sec-label">Ta semaine, jour par jour 📅</div>
             <div className="wk-bars">

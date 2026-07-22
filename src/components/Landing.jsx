@@ -42,7 +42,7 @@ export default function Landing({ onDemo, onConnect, onBallot, stravaConfigured 
 
       <motion.button className="ballot-teaser" onClick={onBallot} {...fade(0.3)}>
         <span className="bt-badge">Nouveau</span>
-        🎟️ <b>Majors Ballot Recap</b> — encore recalé au tirage ? Fête ça.
+        🎟️ <b>Majors Ballot Recap</b> : encore recalé au tirage ? Fête ça.
         <span className="bt-arrow">→</span>
       </motion.button>
 

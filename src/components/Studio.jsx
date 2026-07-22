@@ -85,7 +85,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
     return per.period === 'year' ? yearHeatmap(per.year, daily) : monthHeatmap(per.month.year, per.month.month, daily)
   }, [per.period, per.year, per.month, summary])
 
-  // slides du récap vidéo (façon story animée) — variante hebdo pour la semaine
+  // slides du récap vidéo (façon story animée) : variante hebdo pour la semaine
   const recapSlides = useMemo(
     () => (per.period === 'week'
       ? buildWeeklyRecap(summary, { periodLabel: per.periodLabel, athleteName, privacy: opt.privacy, perDay: weekPerDay, perDayByType: weekByType, event: weekEvent, goal: weekGoalKm })
@@ -118,7 +118,7 @@ export default function Studio({ activities, athleteName, isDemo, coverageStart 
       return
     }
     if (url.length > 14000) {
-      exp.setToast({ type: 'err', msg: 'Carte trop riche pour un lien — partage plutôt l\'image.' })
+      exp.setToast({ type: 'err', msg: 'Carte trop riche pour un lien : partage plutôt l\'image.' })
       return
     }
     try {

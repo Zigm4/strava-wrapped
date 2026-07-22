@@ -133,7 +133,7 @@ export function useCardExport({ formatId, periodLabel }) {
       setToast({ type: 'ok', msg: 'Image copiée 📋' })
     } catch (err) {
       console.error(err)
-      setToast({ type: 'err', msg: 'Copie impossible ici — télécharge plutôt.' })
+      setToast({ type: 'err', msg: 'Copie impossible ici, télécharge plutôt.' })
     } finally {
       setExporting(false)
     }

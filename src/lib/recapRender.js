@@ -9,9 +9,9 @@ import { gridLayout } from './poster.js'
 
 const DISP = 'Space Grotesk' // wordmark / marque
 const BODY = 'Inter' // labels, sous-titres
-const HERO = 'Anton' // police d'affichage massive de la vidéo (chiffres, titres) — fort caractère
+const HERO = 'Anton' // police d'affichage massive de la vidéo (chiffres, titres) : fort caractère
 
-// durée de chaque slide (s) — rythme posé, façon story (~32 s au total pour un bilan annuel)
+// durée de chaque slide (s) : rythme posé, façon story (~32 s au total pour un bilan annuel)
 const DUR = { cover: 2.8, distance: 3.4, sports: 3.3, compare: 3.2, months: 3.2, route: 3.8, elevation: 4.4, streak: 3.6, poster: 3.3, weekdays: 3.4, objective: 3.6, final: 3.6 }
 
 export function timeline(slides) {
@@ -359,7 +359,7 @@ const fmtRatio = (r) => (r >= 10 ? String(Math.round(r)) : r.toFixed(1).replace(
 
 // Profil d'altitude : points de contrôle (xFrac, altFrac ; 1 = sommet), x monotone.
 const ELEV_CP = [[0, 0.06], [0.11, 0.22], [0.22, 0.16], [0.33, 0.40], [0.44, 0.50], [0.55, 0.74], [0.68, 1.00], [0.79, 0.70], [0.89, 0.46], [1.00, 0.28]]
-// Trace une crête LISSE (Catmull-Rom -> bézier cubique) — organique, jamais cassée.
+// Trace une crête LISSE (Catmull-Rom -> bézier cubique) : organique, jamais cassée.
 function crestPath(ctx, pts) {
   const f = 0.5 / 3
   ctx.moveTo(pts[0].x, pts[0].y)
@@ -525,7 +525,7 @@ function drawStreak(ctx, W, H, s, lt, acc, ink, a) {
   if (s.streak >= 2) text(ctx, `🔥 plus longue série : ${s.streak} jours`, cx, H * 0.92, { size: 44, weight: 600, font: BODY, color: ink.fg, align: 'center', alpha: a * clamp((lt - 1.6) / 0.7) })
 }
 
-// mélange deux couleurs (rgba/hex) selon t — pour l'interpolation piste -> accent
+// mélange deux couleurs (rgba/hex) selon t : pour l'interpolation piste -> accent
 function mix(c1, c2, t) {
   const p = (c) => {
     if (c.startsWith('rgba')) { const m = c.match(/[\d.]+/g).map(Number); return [m[0], m[1], m[2], m[3] ?? 1] }
@@ -802,7 +802,7 @@ export function drawFrame(ctx, tl, t, opts) {
   const fn = DRAW[item.slide.kind]
   if (fn) {
     // transition : le CONTENU monte + zoome à l'entrée, dérive vers le haut à la sortie
-    // (au-dessus d'un fond stable) — plus vivant qu'un simple fondu.
+    // (au-dessus d'un fond stable) : plus vivant qu'un simple fondu.
     const enter = easeOut(clamp(lt / 0.45))
     const exit = isLast ? 1 : easeOut(clamp((item.dur - lt) / 0.35))
     const ty = (1 - enter) * 44 - (1 - exit) * 36

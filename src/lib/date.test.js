@@ -4,7 +4,7 @@ import {
   localWeekday, localDayNumber, localTime, toStravaLocal,
 } from './date.js'
 
-describe('date — lecture hors fuseau de start_date_local', () => {
+describe('date : lecture hors fuseau de start_date_local', () => {
   // 31 juillet 23h30 LOCALE, sérialisée "Z" par Strava.
   const nearMidnight = '2026-07-31T23:30:00Z'
 
@@ -44,7 +44,7 @@ describe('date — lecture hors fuseau de start_date_local', () => {
   })
 })
 
-describe('toStravaLocal — la démo suit la convention Strava', () => {
+describe('toStravaLocal : la démo suit la convention Strava', () => {
   it('encode l\'heure murale locale (pas l\'UTC)', () => {
     const d = new Date(2026, 6, 31, 23, 30, 0) // 31 juil 23h30 locale
     expect(toStravaLocal(d)).toBe('2026-07-31T23:30:00Z')

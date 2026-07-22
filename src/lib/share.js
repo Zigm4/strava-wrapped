@@ -1,4 +1,4 @@
-// Lien Wrapped partageable — SANS serveur ni base de données.
+// Lien Wrapped partageable : SANS serveur ni base de données.
 // On sérialise un instantané compact de la carte, on le compresse (lz-string) et on le met
 // dans le FRAGMENT d'URL (#w=...) : le fragment n'est jamais envoyé au serveur, donc la
 // promesse "rien ne quitte ton navigateur" reste vraie. Le destinataire ouvre le lien et

@@ -16,7 +16,7 @@ function sampleProps() {
   }
 }
 
-describe('share — encode/decode round-trip', () => {
+describe('share : encode/decode round-trip', () => {
   it('un instantané se compresse et se relit à l\'identique', () => {
     const snap = buildSnapshot(sampleProps())
     const encoded = encodeShare(snap)

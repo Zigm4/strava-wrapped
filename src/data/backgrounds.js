@@ -29,7 +29,7 @@ export const BACKGROUNDS = [
     css: 'linear-gradient(160deg, #fbfbf7 0%, #ece9e1 100%)' },
 ]
 
-// Défaut : fond bleu (Ocean) — contraste franc avec l'accent violet par défaut.
+// Défaut : fond bleu (Ocean) : contraste franc avec l'accent violet par défaut.
 export const DEFAULT_BG = BACKGROUNDS.find((b) => b.id === 'ocean') || BACKGROUNDS[0]
 
 // Palettes d'accent (dégradé from -> to) appliquées à la barre, aux records, au tracé.

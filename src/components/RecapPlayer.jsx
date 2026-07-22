@@ -13,7 +13,7 @@ const HOLD_MS = 160 // au-delà, un appui maintenu = pause (façon Stories) ; en
 
 // Lecteur plein écran du récap : lecture fluide sur canvas (rAF) + export vidéo.
 // La boucle rAF NE TOURNE QUE pendant la lecture : en pause / fin de vidéo elle s'arrête
-// complètement (un seul dessin figé) — sinon le canvas se redessinerait à 60 fps sans fin
+// complètement (un seul dessin figé) ; sinon le canvas se redessinerait à 60 fps sans fin
 // et ferait chauffer l'appareil.
 export default function RecapPlayer({ slides, acc, theme = 'dark', background, photo, periodLabel, onClose }) {
   const tl = useMemo(() => timeline(slides), [slides])
@@ -276,7 +276,7 @@ export default function RecapPlayer({ slides, acc, theme = 'dark', background, p
             {exporting ? <><span className="spinner" /> {pct}%</> : <><Film size={18} /> Exporter la vidéo</>}
           </button>
         ) : (
-          <div className="recap-note"><Download size={15} /> Export vidéo indisponible sur ce navigateur — utilise l'image.</div>
+          <div className="recap-note"><Download size={15} /> Export vidéo indisponible sur ce navigateur : utilise l'image.</div>
         )}
       </div>
 

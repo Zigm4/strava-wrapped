@@ -10,7 +10,7 @@ import { monthShort } from './format.js'
 
 const acts = generateDemoActivities()
 
-describe('selectors — période', () => {
+describe('selectors : période', () => {
   it('buildMonthsForYear renvoie 12 mois et marque le hors-historique', () => {
     const months = buildMonthsForYear(acts, 2025, { year: 2025, month: 3 })
     expect(months).toHaveLength(12)
@@ -40,7 +40,7 @@ describe('selectors — période', () => {
   })
 })
 
-describe('selectors — comparaison', () => {
+describe('selectors : comparaison', () => {
   const params = { activities: acts, period: 'month', year: 2025, month: { year: 2025, month: 4 }, dataFloor: { year: 2021, month: 6 } }
 
   it('referencePeriod prev = mois précédent', () => {
@@ -84,7 +84,7 @@ describe('selectors — comparaison', () => {
   })
 })
 
-describe('selectors — comparaison « à date » (période en cours)', () => {
+describe('selectors : comparaison « à date » (période en cours)', () => {
   afterEach(() => vi.useRealTimers())
 
   it('tronque la référence au même jour, ne bloque pas, et expose asOf', () => {
@@ -126,7 +126,7 @@ describe('selectors — comparaison « à date » (période en cours)', () => {
   })
 })
 
-describe('selectors — semaine (lundi→dimanche)', () => {
+describe('selectors : semaine (lundi→dimanche)', () => {
   afterEach(() => vi.useRealTimers())
 
   const acts = [
